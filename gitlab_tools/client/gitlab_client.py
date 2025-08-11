@@ -4,7 +4,7 @@ Module principal pour établir et gérer la connexion à GitLab
 """
 import os
 import sys
-import gitlab
+import gitlab as python_gitlab
 import yaml
 import warnings
 from pathlib import Path
@@ -69,7 +69,8 @@ class GitLabClient:
         Returns:
             Configuration par défaut
         """
-        config_path = Path(__file__).parent.parent / 'config' / 'config.yaml'
+        # Chemin vers le fichier de configuration par défaut
+        config_path = Path(__file__).parent.parent.parent / 'config' / 'config.yaml'
         
         if not config_path.exists():
             print("❌ Fichier config/config.yaml introuvable")
@@ -78,7 +79,7 @@ class GitLabClient:
         
         return self._load_config(str(config_path))
     
-    def connect(self, url: Optional[str] = None, token: Optional[str] = None) -> gitlab.Gitlab:
+    def connect(self, url: Optional[str] = None, token: Optional[str] = None) -> python_gitlab.Gitlab:
         """
         Établit la connexion à GitLab
         
@@ -112,9 +113,9 @@ class GitLabClient:
             # Créer le client avec vérification SSL désactivée pour les instances internes
             if "oncf.net" in gitlab_url.lower() or "localhost" in gitlab_url.lower():
                 print("⚠️ Désactivation de la vérification SSL pour instance interne")
-                self.client = gitlab.Gitlab(gitlab_url, private_token=gitlab_token, ssl_verify=False)
+                self.client = python_gitlab.Gitlab(gitlab_url, private_token=gitlab_token, ssl_verify=False)
             else:
-                self.client = gitlab.Gitlab(gitlab_url, private_token=gitlab_token)
+                self.client = python_gitlab.Gitlab(gitlab_url, private_token=gitlab_token)
             
             # Tester la connexion en récupérant l'utilisateur actuel
             try:
@@ -150,18 +151,18 @@ class GitLabClient:
             self.is_connected = True
             return self.client
             
-        except gitlab.GitlabAuthenticationError as e:
+        except python_gitlab.GitlabAuthenticationError as e:
             print(f"❌ Erreur d'authentification GitLab: {e}")
             print("💡 Vérifiez votre token d'accès")
             raise
-        except gitlab.GitlabGetError as e:
+        except python_gitlab.GitlabGetError as e:
             print(f"❌ Erreur d'accès GitLab: {e}")
             raise
         except Exception as e:
             print(f"❌ Erreur de connexion GitLab: {e}")
             raise
     
-    def get_client(self) -> gitlab.Gitlab:
+    def get_client(self) -> python_gitlab.Gitlab:
         """
         Retourne le client GitLab (se connecte automatiquement si nécessaire)
         

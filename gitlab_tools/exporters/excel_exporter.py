@@ -1,0 +1,299 @@
+"""
+Exporteur Excel pour GitLab
+Module pour exporter les données GitLab vers Excel avec formatage
+"""
+import pandas as pd
+from pathlib import Path
+from typing import Optional, Dict, Any
+from datetime import datetime
+import openpyxl
+from openpyxl.styles import Font, PatternFill, Alignment, Border, Side
+from openpyxl.utils.dataframe import dataframe_to_rows
+
+
+class GitLabExcelExporter:
+    """Classe pour exporter les données GitLab vers Excel avec formatage professionnel"""
+    
+    def __init__(self, export_dir: Optional[Path] = None):
+        """
+        Initialise l'exporteur
+        
+        Args:
+            export_dir: Répertoire d'export (défaut: exports/gitlab/)
+        """
+        if export_dir is None:
+            # Trouver le dossier racine du projet
+            current_dir = Path(__file__).parent.parent.parent
+            self.export_dir = current_dir / "exports" / "gitlab"
+        else:
+            self.export_dir = Path(export_dir)
+        
+        # Créer le dossier d'export s'il n'existe pas
+        self.export_dir.mkdir(parents=True, exist_ok=True)
+    
+    def _apply_header_style(self, worksheet, max_col: int):
+        """
+        Applique le style aux en-têtes
+        
+        Args:
+            worksheet: Feuille Excel
+            max_col: Nombre maximum de colonnes
+        """
+        # Style pour les en-têtes
+        header_font = Font(bold=True, color="FFFFFF")
+        header_fill = PatternFill(start_color="366092", end_color="366092", fill_type="solid")
+        header_alignment = Alignment(horizontal="center", vertical="center")
+        
+        # Bordures
+        thin_border = Border(
+            left=Side(style='thin'),
+            right=Side(style='thin'),
+            top=Side(style='thin'),
+            bottom=Side(style='thin')
+        )
+        
+        # Appliquer le style aux en-têtes
+        for col in range(1, max_col + 1):
+            cell = worksheet.cell(row=1, column=col)
+            cell.font = header_font
+            cell.fill = header_fill
+            cell.alignment = header_alignment
+            cell.border = thin_border
+    
+    def _auto_adjust_columns(self, worksheet):
+        """
+        Ajuste automatiquement la largeur des colonnes
+        
+        Args:
+            worksheet: Feuille Excel
+        """
+        for column in worksheet.columns:
+            max_length = 0
+            column_name = column[0].column_letter
+            
+            for cell in column:
+                try:
+                    if len(str(cell.value)) > max_length:
+                        max_length = len(str(cell.value))
+                except:
+                    pass
+            
+            # Ajuster la largeur (minimum 12, maximum 50)
+            adjusted_width = min(max(max_length + 2, 12), 50)
+            worksheet.column_dimensions[column_name].width = adjusted_width
+    
+    def export_users(self, df_users: pd.DataFrame, filename: str = "gitlab_users.xlsx") -> str:
+        """
+        Exporte les utilisateurs vers Excel avec formatage professionnel
+        
+        Args:
+            df_users: DataFrame des utilisateurs
+            filename: Nom du fichier
+            
+        Returns:
+            Chemin complet du fichier créé
+        """
+        if df_users.empty:
+            print("❌ Aucune donnée utilisateur à exporter")
+            return ""
+        
+        try:
+            # Chemin complet du fichier directement dans gitlab/
+            file_path = self.export_dir / filename
+            
+            print(f"📁 Export vers: {file_path}")
+            
+            # Créer le workbook et la feuille
+            workbook = openpyxl.Workbook()
+            worksheet = workbook.active
+            worksheet.title = "Utilisateurs GitLab"
+            
+            # Ajouter les données
+            for row in dataframe_to_rows(df_users, index=False, header=True):
+                worksheet.append(row)
+            
+            # Appliquer le formatage
+            self._apply_header_style(worksheet, len(df_users.columns))
+            self._auto_adjust_columns(worksheet)
+            
+            # Figer la première ligne
+            worksheet.freeze_panes = "A2"
+            
+            # Ajouter des métadonnées
+            info_sheet = workbook.create_sheet("Informations")
+            info_data = [
+                ["Rapport", "Utilisateurs GitLab ONCF"],
+                ["Date d'export", datetime.now().strftime("%d/%m/%Y %H:%M:%S")],
+                ["Nombre d'utilisateurs", len(df_users)],
+                ["États inclus", ", ".join(df_users['etat'].unique()) if 'etat' in df_users.columns else "N/A"],
+                ["Générateur", "KENOBI DEVOPS ETL"],
+            ]
+            
+            for row in info_data:
+                info_sheet.append(row)
+            
+            # Ajuster la largeur des colonnes de la feuille info
+            for col in info_sheet.columns:
+                max_length = max(len(str(cell.value)) for cell in col)
+                info_sheet.column_dimensions[col[0].column_letter].width = max_length + 2
+            
+            # Sauvegarder
+            workbook.save(file_path)
+            workbook.close()
+            
+            print(f"✅ Fichier Excel créé: {file_path}")
+            print(f"📊 {len(df_users)} utilisateurs exportés")
+            
+            return str(file_path)
+            
+        except Exception as e:
+            print(f"❌ Erreur lors de l'export Excel: {e}")
+            return ""
+    
+    def export_projects(self, df_projects: pd.DataFrame, filename: str = "gitlab_projects.xlsx") -> str:
+        """
+        Exporte les projets vers Excel
+        
+        Args:
+            df_projects: DataFrame des projets
+            filename: Nom du fichier
+            
+        Returns:
+            Chemin complet du fichier créé
+        """
+        if df_projects.empty:
+            print("❌ Aucune donnée projet à exporter")
+            return ""
+        
+        try:
+            file_path = self.export_dir / filename
+            print(f"📁 Export projets vers: {file_path}")
+            
+            with pd.ExcelWriter(file_path, engine='openpyxl') as writer:
+                df_projects.to_excel(writer, sheet_name='Projets GitLab', index=False)
+                
+                # Formatage basique
+                worksheet = writer.sheets['Projets GitLab']
+                self._apply_header_style(worksheet, len(df_projects.columns))
+                self._auto_adjust_columns(worksheet)
+                worksheet.freeze_panes = "A2"
+            
+            print(f"✅ Fichier projets Excel créé: {file_path}")
+            print(f"📊 {len(df_projects)} projets exportés")
+            
+            return str(file_path)
+            
+        except Exception as e:
+            print(f"❌ Erreur lors de l'export projets Excel: {e}")
+            return ""
+    
+    def export_combined_report(self, df_users: pd.DataFrame, df_projects: pd.DataFrame, 
+                             stats: Dict[str, Any], filename: str = "gitlab_rapport_complet.xlsx") -> str:
+        """
+        Exporte un rapport combiné avec utilisateurs, projets et statistiques
+        
+        Args:
+            df_users: DataFrame des utilisateurs
+            df_projects: DataFrame des projets
+            stats: Dictionnaire des statistiques
+            filename: Nom du fichier
+            
+        Returns:
+            Chemin complet du fichier créé
+        """
+        try:
+            file_path = self.export_dir / filename
+            print(f"📁 Export rapport complet vers: {file_path}")
+            
+            with pd.ExcelWriter(file_path, engine='openpyxl') as writer:
+                # Feuille utilisateurs
+                if not df_users.empty:
+                    df_users.to_excel(writer, sheet_name='Utilisateurs', index=False)
+                    worksheet = writer.sheets['Utilisateurs']
+                    self._apply_header_style(worksheet, len(df_users.columns))
+                    self._auto_adjust_columns(worksheet)
+                    worksheet.freeze_panes = "A2"
+                
+                # Feuille projets
+                if not df_projects.empty:
+                    df_projects.to_excel(writer, sheet_name='Projets', index=False)
+                    worksheet = writer.sheets['Projets']
+                    self._apply_header_style(worksheet, len(df_projects.columns))
+                    self._auto_adjust_columns(worksheet)
+                    worksheet.freeze_panes = "A2"
+                
+                # Feuille statistiques
+                if stats:
+                    stats_df = pd.DataFrame(list(stats.items()), columns=['Métrique', 'Valeur'])
+                    stats_df.to_excel(writer, sheet_name='Statistiques', index=False)
+                    worksheet = writer.sheets['Statistiques']
+                    self._apply_header_style(worksheet, 2)
+                    self._auto_adjust_columns(worksheet)
+            
+            print(f"✅ Rapport complet Excel créé: {file_path}")
+            return str(file_path)
+            
+        except Exception as e:
+            print(f"❌ Erreur lors de l'export rapport complet: {e}")
+            return ""
+
+
+def export_users_to_excel(df_users: pd.DataFrame, filename: str = "gitlab_users.xlsx") -> str:
+    """
+    Fonction simple pour exporter les utilisateurs vers Excel
+    
+    Args:
+        df_users: DataFrame des utilisateurs
+        filename: Nom du fichier
+        
+    Returns:
+        Chemin du fichier créé
+    """
+    exporter = GitLabExcelExporter()
+    return exporter.export_users(df_users, filename)
+
+
+def export_projects_to_excel(df_projects: pd.DataFrame, filename: str = "gitlab_projects.xlsx") -> str:
+    """
+    Fonction simple pour exporter les projets vers Excel
+    
+    Args:
+        df_projects: DataFrame des projets
+        filename: Nom du fichier
+        
+    Returns:
+        Chemin du fichier créé
+    """
+    exporter = GitLabExcelExporter()
+    return exporter.export_projects(df_projects, filename)
+
+
+if __name__ == "__main__":
+    """Test de l'exporteur Excel"""
+    import sys
+    from pathlib import Path
+    
+    # Test avec des données fictives
+    print("🧪 Test de l'exporteur Excel GitLab")
+    print("=" * 50)
+    
+    # Créer des données de test
+    test_users = pd.DataFrame({
+        'id_utilisateur': [1, 2, 3],
+        'nom_utilisateur': ['user1', 'user2', 'user3'],
+        'email': ['user1@test.com', 'user2@test.com', 'user3@test.com'],
+        'nom_complet': ['Utilisateur Un', 'Utilisateur Deux', 'Utilisateur Trois'],
+        'admin': ['Non', 'Oui', 'Non'],
+        'etat': ['Active', 'Active', 'Blocked'],
+        'type_utilisateur': ['Humain', 'Humain', 'Humain'],
+        'date_creation': ['01/01/2024 10:00:00', '02/01/2024 11:00:00', '03/01/2024 12:00:00']
+    })
+    
+    # Test d'export
+    exporter = GitLabExcelExporter()
+    file_path = exporter.export_users(test_users, "test_users.xlsx")
+    
+    if file_path:
+        print(f"✅ Test réussi! Fichier créé: {file_path}")
+    else:
+        print("❌ Test échoué")
