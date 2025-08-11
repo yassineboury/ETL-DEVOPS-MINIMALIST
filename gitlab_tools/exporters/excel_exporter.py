@@ -355,54 +355,68 @@ class GitLabExcelExporter:
             print(f"❌ Erreur export MR: {e}")
             return None
 
+    def _add_general_mr_stats(self, stats_data: list, df_mrs: pd.DataFrame):
+        """Ajoute les statistiques générales des MR"""
+        stats_data.append(['=== STATISTIQUES MERGE REQUESTS ===', ''])
+        stats_data.append(['Total MR', len(df_mrs)])
+
+    def _add_state_stats(self, stats_data: list, df_mrs: pd.DataFrame):
+        """Ajoute les statistiques par état"""
+        if 'etat' in df_mrs.columns:
+            state_counts = df_mrs['etat'].value_counts()
+            stats_data.append(['', ''])
+            stats_data.append(['=== RÉPARTITION PAR ÉTAT ===', ''])
+            for state, count in state_counts.items():
+                stats_data.append([f'État {state}', count])
+
+    def _add_merge_status_stats(self, stats_data: list, df_mrs: pd.DataFrame):
+        """Ajoute les statistiques par statut de fusion"""
+        if 'statut_fusion' in df_mrs.columns:
+            merge_status_counts = df_mrs['statut_fusion'].value_counts()
+            stats_data.append(['', ''])
+            stats_data.append(['=== STATUTS DE FUSION ===', ''])
+            for status, count in merge_status_counts.items():
+                stats_data.append([f'{status}', count])
+
+    def _add_conflict_stats(self, stats_data: list, df_mrs: pd.DataFrame):
+        """Ajoute les statistiques de conflits"""
+        if 'conflits' in df_mrs.columns:
+            conflicts_counts = df_mrs['conflits'].value_counts()
+            stats_data.append(['', ''])
+            stats_data.append(['=== CONFLITS ===', ''])
+            for conflict, count in conflicts_counts.items():
+                stats_data.append([f'Conflits: {conflict}', count])
+
+    def _add_project_stats(self, stats_data: list, df_mrs: pd.DataFrame):
+        """Ajoute les statistiques par projet (top 10)"""
+        if 'id_projet' in df_mrs.columns:
+            project_counts = df_mrs['id_projet'].value_counts().head(10)
+            stats_data.append(['', ''])
+            stats_data.append(['=== TOP 10 PROJETS AVEC MR ===', ''])
+            for project, count in project_counts.items():
+                stats_data.append([f'Projet {project}', count])
+
+    def _add_author_stats(self, stats_data: list, df_mrs: pd.DataFrame):
+        """Ajoute les statistiques par auteur (top 10)"""
+        if 'id_auteur' in df_mrs.columns:
+            author_counts = df_mrs['id_auteur'].value_counts().head(10)
+            stats_data.append(['', ''])
+            stats_data.append(['=== TOP 10 AUTEURS MR ===', ''])
+            for author, count in author_counts.items():
+                stats_data.append([f'Utilisateur {author}', count])
+
     def _add_mr_statistics(self, writer, df_mrs: pd.DataFrame):
         """Ajoute des statistiques sur les Merge Requests"""
         try:
             stats_data = []
 
-            # Statistiques générales
-            stats_data.append(['=== STATISTIQUES MERGE REQUESTS ===', ''])
-            stats_data.append(['Total MR', len(df_mrs)])
-
-            # Par état
-            if 'etat' in df_mrs.columns:
-                state_counts = df_mrs['etat'].value_counts()
-                stats_data.append(['', ''])
-                stats_data.append(['=== RÉPARTITION PAR ÉTAT ===', ''])
-                for state, count in state_counts.items():
-                    stats_data.append([f'État {state}', count])
-
-            # Par statut de fusion
-            if 'statut_fusion' in df_mrs.columns:
-                merge_status_counts = df_mrs['statut_fusion'].value_counts()
-                stats_data.append(['', ''])
-                stats_data.append(['=== STATUTS DE FUSION ===', ''])
-                for status, count in merge_status_counts.items():
-                    stats_data.append([f'{status}', count])
-
-            # Conflits
-            if 'conflits' in df_mrs.columns:
-                conflicts_counts = df_mrs['conflits'].value_counts()
-                stats_data.append(['', ''])
-                stats_data.append(['=== CONFLITS ===', ''])
-                for conflict, count in conflicts_counts.items():
-                    stats_data.append([f'Conflits: {conflict}', count])
-
-            # Par projet (top 10)
-            if 'id_projet' in df_mrs.columns:
-                project_counts = df_mrs['id_projet'].value_counts().head(10)
-                stats_data.append(['', ''])
-                stats_data.append(['=== TOP 10 PROJETS AVEC MR ===', ''])
-                for project, count in project_counts.items():
-                    stats_data.append([f'Projet {project}', count])
-
-            # Par auteur (top 10)
-            if 'id_auteur' in df_mrs.columns:
-                author_counts = df_mrs['id_auteur'].value_counts().head(10)
-                stats_data.append(['', ''])
-                stats_data.append(['=== TOP 10 AUTEURS MR ===', ''])
-                for author, count in author_counts.items():
-                    stats_data.append([f'Utilisateur {author}', count])
+            # Utiliser les fonctions helper pour réduire la complexité
+            self._add_general_mr_stats(stats_data, df_mrs)
+            self._add_state_stats(stats_data, df_mrs)
+            self._add_merge_status_stats(stats_data, df_mrs)
+            self._add_conflict_stats(stats_data, df_mrs)
+            self._add_project_stats(stats_data, df_mrs)
+            self._add_author_stats(stats_data, df_mrs)
 
             # Créer le DataFrame des statistiques
             stats_df = pd.DataFrame(stats_data, columns=[METRIC_COLUMN_NAME, 'Valeur'])

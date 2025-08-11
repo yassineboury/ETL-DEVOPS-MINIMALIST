@@ -299,6 +299,61 @@ def extract_users_by_state(gl_client: python_gitlab.Gitlab, state: str = 'active
         return pd.DataFrame()
 
 
+def _update_type_statistics(stats: Dict[str, int], user_type: str):
+    """Met à jour les statistiques par type d'utilisateur"""
+    if user_type == "Humain":
+        stats['human_users'] += 1
+    elif user_type == "Bot":
+        stats['bot_users'] += 1
+    else:
+        stats['service_users'] += 1
+
+
+def _update_state_statistics(stats: Dict[str, int], state: str):
+    """Met à jour les statistiques par état d'utilisateur"""
+    if state == 'active':
+        stats['active_users'] += 1
+    elif state == 'blocked':
+        stats['blocked_users'] += 1
+    elif state == 'deactivated':
+        stats['deactivated_users'] += 1
+
+
+def _update_user_attributes(stats: Dict[str, int], user, thirty_days_ago):
+    """Met à jour les statistiques pour les attributs utilisateur"""
+    # Compter les admins
+    if getattr(user, 'is_admin', False):
+        stats['admin_users'] += 1
+
+    # Compter ceux avec email
+    if getattr(user, 'email', None):
+        stats['users_with_email'] += 1
+
+    # Activité récente
+    last_activity = getattr(user, 'last_activity_on', None)
+    if last_activity:
+        try:
+            activity_date = datetime.strptime(last_activity, "%Y-%m-%d").replace(tzinfo=None)
+            if activity_date > thirty_days_ago:
+                stats['recent_activity'] += 1
+        except (ValueError, TypeError):
+            pass
+
+
+def _process_user_for_stats(user, stats: Dict[str, int], thirty_days_ago):
+    """Traite un utilisateur pour les statistiques"""
+    try:
+        user_type = _determine_user_type(user)
+        state = getattr(user, 'state', 'active')
+
+        _update_type_statistics(stats, user_type)
+        _update_state_statistics(stats, state)
+        _update_user_attributes(stats, user, thirty_days_ago)
+
+    except Exception:
+        pass
+
+
 def get_user_statistics(gl_client: python_gitlab.Gitlab) -> Dict[str, Any]:
     """
     Récupère des statistiques sur les utilisateurs
@@ -330,46 +385,7 @@ def get_user_statistics(gl_client: python_gitlab.Gitlab) -> Dict[str, Any]:
         thirty_days_ago = datetime.now().replace(tzinfo=None) - pd.Timedelta(days=30)
 
         for user in all_users:
-            try:
-                user_type = _determine_user_type(user)
-                state = getattr(user, 'state', 'active')
-
-                # Compter par type
-                if user_type == "Humain":
-                    stats['human_users'] += 1
-                elif user_type == "Bot":
-                    stats['bot_users'] += 1
-                else:
-                    stats['service_users'] += 1
-
-                # Compter par état (tous types confondus)
-                if state == 'active':
-                    stats['active_users'] += 1
-                elif state == 'blocked':
-                    stats['blocked_users'] += 1
-                elif state == 'deactivated':
-                    stats['deactivated_users'] += 1
-
-                # Compter les admins
-                if getattr(user, 'is_admin', False):
-                    stats['admin_users'] += 1
-
-                # Compter ceux avec email
-                if getattr(user, 'email', None):
-                    stats['users_with_email'] += 1
-
-                # Activité récente
-                last_activity = getattr(user, 'last_activity_on', None)
-                if last_activity:
-                    try:
-                        activity_date = datetime.strptime(last_activity, "%Y-%m-%d").replace(tzinfo=None)
-                        if activity_date > thirty_days_ago:
-                            stats['recent_activity'] += 1
-                    except (ValueError, TypeError):
-                        pass
-
-            except Exception:
-                continue
+            _process_user_for_stats(user, stats, thirty_days_ago)
 
         print("📊 Statistiques calculées:")
         for key, value in stats.items():
