@@ -39,6 +39,9 @@ config/config.yaml
 output/*.xlsx
 output/*.csv
 
+# Exports générés
+exports/
+
 # Logs
 logs/
 *.log
