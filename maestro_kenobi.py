@@ -1,7 +1,8 @@
 #!/usr/bin/env python3
 """
-Orchestrateur d'export GitLab KENOBI DEVOPS
-Gère les exports GitLab selon un processus clair et par étapes
+🎯 MAESTRO KENOBI - ETL DevSecOps Orchestrator
+Le maître orchestrateur pour les exports GitLab et DevSecOps
+Gère les exports selon un processus clair et par étapes avec style !
 """
 
 import sys
@@ -23,9 +24,10 @@ from gitlab_tools.extractors.projects_extractor import extract_projects
 from gitlab_tools.exporters.excel_exporter import export_users_to_excel, export_projects_to_excel
 
 
-class GitLabExportOrchestrator:
+class MaestroKenobiOrchestrator:
     """
-    Orchestrateur pour gérer les exports GitLab de manière structurée
+    🎭 MAESTRO KENOBI - Le maître orchestrateur GitLab
+    Gère les exports GitLab avec élégance et puissance
     """
     
     def __init__(self):
@@ -405,8 +407,11 @@ class GitLabExportOrchestrator:
 
 
 def main():
-    """Point d'entrée principal"""
-    orchestrator = GitLabExportOrchestrator()
+    """🚀 Point d'entrée principal - MAESTRO KENOBI en action !"""
+    print("🎭 MAESTRO KENOBI - Orchestrateur DevSecOps")
+    print("=" * 50)
+    
+    orchestrator = MaestroKenobiOrchestrator()
     
     # Lancer l'export complet
     success = orchestrator.run_full_export()
