@@ -94,14 +94,14 @@ class GitLabClient:
         """
         try:
             # Déterminer l'URL
-            gitlab_url = url or self.config.get('gitlab', {}).get('url')
+            gitlab_url = url or (self.config.get('gitlab', {}).get('url') if self.config else None)
             if not gitlab_url:
                 raise ValueError("URL GitLab manquante dans la configuration")
             
             # Déterminer le token
             gitlab_token = (token or 
                           os.getenv('GITLAB_TOKEN') or 
-                          self.config.get('gitlab', {}).get('token'))
+                          (self.config.get('gitlab', {}).get('token') if self.config else None))
             
             if not gitlab_token or gitlab_token.startswith('${'):
                 raise ValueError("Token GitLab manquant. Vérifiez votre fichier .env ou la configuration")
@@ -167,9 +167,16 @@ class GitLabClient:
         
         Returns:
             Client GitLab authentifié
+            
+        Raises:
+            ValueError: Si la connexion échoue
         """
         if not self.is_connected or not self.client:
             self.connect()
+        
+        if not self.client:
+            raise ValueError("Impossible d'établir la connexion GitLab")
+            
         return self.client
     
     def test_connection(self) -> bool:
