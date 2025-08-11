@@ -46,7 +46,6 @@ ETL simple pour extraire des indicateurs DevSecOps depuis GitLab et SonarQube, e
 etl-devsecops/
 ├── 📄 maestro_kenobi.py           # 🎯 MAESTRO KENOBI - Orchestrateur principal avec UI
 ├── 📄 main.py                     # Point d'entrée alternatif (simple)
-├── 📄 cleanup_exports.py          # Utilitaire de nettoyage
 ├── 📄 STATUS_GITLAB.md           # Documentation connexion
 ├── 📁 config/
 │   ├── config.yaml                # Configuration URLs/tokens
