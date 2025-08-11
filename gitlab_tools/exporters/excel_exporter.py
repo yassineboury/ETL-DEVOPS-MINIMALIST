@@ -11,6 +11,9 @@ import pandas as pd
 from openpyxl.styles import Alignment, Border, Font, PatternFill, Side
 from openpyxl.utils.dataframe import dataframe_to_rows
 
+# Constantes
+METRIC_COLUMN_NAME = 'Métrique'
+
 
 class GitLabExcelExporter:
     """Classe pour exporter les données GitLab vers Excel avec formatage professionnel"""
@@ -76,7 +79,7 @@ class GitLabExcelExporter:
                 try:
                     if len(str(cell.value)) > max_length:
                         max_length = len(str(cell.value))
-                except:
+                except (AttributeError, ValueError):
                     pass
 
             # Ajuster la largeur (minimum 12, maximum 50)
@@ -292,7 +295,7 @@ class GitLabExcelExporter:
                     stats_data.append([f'Utilisateur {author}', count])
 
             # Créer le DataFrame des statistiques
-            stats_df = pd.DataFrame(stats_data, columns=['Métrique', 'Valeur'])
+            stats_df = pd.DataFrame(stats_data, columns=[METRIC_COLUMN_NAME, 'Valeur'])
 
             # Exporter vers un onglet séparé
             stats_df.to_excel(writer, sheet_name='Statistiques', index=False)
@@ -402,7 +405,7 @@ class GitLabExcelExporter:
                     stats_data.append([f'Utilisateur {author}', count])
 
             # Créer le DataFrame des statistiques
-            stats_df = pd.DataFrame(stats_data, columns=['Métrique', 'Valeur'])
+            stats_df = pd.DataFrame(stats_data, columns=[METRIC_COLUMN_NAME, 'Valeur'])
 
             # Exporter vers un onglet séparé
             stats_df.to_excel(writer, sheet_name='Statistiques', index=False)
@@ -495,7 +498,7 @@ class GitLabExcelExporter:
 
                 # Feuille statistiques
                 if stats:
-                    stats_df = pd.DataFrame(list(stats.items()), columns=['Métrique', 'Valeur'])
+                    stats_df = pd.DataFrame(list(stats.items()), columns=[METRIC_COLUMN_NAME, 'Valeur'])
                     stats_df.to_excel(writer, sheet_name='Statistiques', index=False)
                     worksheet = writer.sheets['Statistiques']
                     self._apply_header_style(worksheet, 2)

@@ -137,6 +137,132 @@ def _extract_reviewers_ids(reviewers: List[Dict[str, Any]]) -> str:
         return "N/A"
 
 
+def _should_skip_archived_project(
+    gl_client: python_gitlab.Gitlab, project_id: int, include_archived: bool
+) -> bool:
+    """
+    Détermine si un projet archivé doit être ignoré
+
+    Args:
+        gl_client: Client GitLab connecté
+        project_id: ID du projet
+        include_archived: Inclure les projets archivés
+
+    Returns:
+        True si le projet doit être ignoré, False sinon
+    """
+    if include_archived:
+        return False
+        
+    try:
+        full_project = gl_client.projects.get(project_id)
+        return getattr(full_project, 'archived', False)
+    except Exception:
+        return True  # En cas d'erreur, ignorer le projet
+
+
+def _extract_project_merge_requests(project) -> List:
+    """
+    Extrait les merge requests d'un projet
+
+    Args:
+        project: Projet GitLab
+
+    Returns:
+        Liste des merge requests ou liste vide
+    """
+    try:
+        return project.mergerequests.list(all=True, per_page=100)
+    except Exception:
+        return []
+
+
+def _extract_mr_data(project, mr) -> Dict[str, Any]:
+    """
+    Extrait les données d'une merge request
+
+    Args:
+        project: Projet GitLab
+        mr: Merge request
+
+    Returns:
+        Dictionnaire avec les données de la MR
+    """
+    # Récupérer les détails complets de la MR
+    try:
+        full_mr = project.mergerequests.get(mr.iid)
+    except Exception:
+        full_mr = mr
+
+    # Données utilisateurs
+    author = getattr(full_mr, 'author', {}) or {}
+    assignee = getattr(full_mr, 'assignee', {}) or {}
+    merge_user = getattr(full_mr, 'merge_user', {}) or {}
+    reviewers = getattr(full_mr, 'reviewers', []) or []
+
+    # Données pipeline
+    head_pipeline = getattr(full_mr, 'head_pipeline', {}) or {}
+    pipeline_status = head_pipeline.get('status', 'N/A') if head_pipeline else 'N/A'
+
+    return {
+        'id_merge_request': getattr(full_mr, 'id', 0),
+        'iid_interne': getattr(full_mr, 'iid', 0),
+        'id_projet': getattr(full_mr, 'project_id', 0),
+        'titre': getattr(full_mr, 'title', 'N/A'),
+        'description': getattr(full_mr, 'description', 'N/A') or 'N/A',
+        'etat': _translate_state(getattr(full_mr, 'state', 'N/A')),
+        'brouillon': "Oui" if getattr(full_mr, 'draft', False) else "Non",
+        'date_creation': _format_date(getattr(full_mr, 'created_at', None)),
+        'date_mise_jour': _format_date(getattr(full_mr, 'updated_at', None)),
+        'date_fusion': _format_date(getattr(full_mr, 'merged_at', None)),
+        'date_fermeture': _format_date(getattr(full_mr, 'closed_at', None)),
+        'branche_source': getattr(full_mr, 'source_branch', 'N/A'),
+        'branche_cible': getattr(full_mr, 'target_branch', 'N/A'),
+        'id_auteur': author.get('id', 0) if author else 0,
+        'id_assignee': assignee.get('id', 0) if assignee else 0,
+        'id_reviewers': _extract_reviewers_ids(reviewers),
+        'id_fusionneur': merge_user.get('id', 0) if merge_user else 0,
+        'statut_fusion': _translate_merge_status(
+            getattr(full_mr, 'merge_status', 'N/A')
+        ),
+        'statut_detaille': _translate_detailed_status(
+            getattr(full_mr, 'detailed_merge_status', 'N/A')
+        ),
+        'conflits': "Oui" if getattr(full_mr, 'has_conflicts', False) else "Non",
+        'pipeline_statut': pipeline_status
+    }
+
+
+def _process_project_mrs(project, mrs_data, filtered_mrs):
+    """
+    Traite toutes les MR d'un projet
+
+    Args:
+        project: Projet GitLab
+        mrs_data: Liste pour stocker les données MR
+        filtered_mrs: Compteur des MR filtrées
+
+    Returns:
+        Nombre de MR traitées
+    """
+    merge_requests = _extract_project_merge_requests(project)
+    if not merge_requests:
+        return filtered_mrs
+
+    print(f"📝 Projet '{getattr(project, 'name', 'N/A')}': {len(merge_requests)} MR")
+
+    for mr in merge_requests:
+        try:
+            mr_info = _extract_mr_data(project, mr)
+            mrs_data.append(mr_info)
+            filtered_mrs += 1
+        except Exception as mr_error:
+            print(f"⚠️ Erreur MR ID {getattr(mr, 'id', 'N/A')}: {mr_error}")
+            continue
+
+    return filtered_mrs
+
+
 def extract_merge_requests(
     gl_client: python_gitlab.Gitlab, include_archived: bool = False
 ) -> pd.DataFrame:
@@ -167,78 +293,11 @@ def extract_merge_requests(
         for project in all_projects:
             try:
                 # Filtrer les projets archivés si nécessaire
-                if not include_archived:
-                    try:
-                        full_project = gl_client.projects.get(project.id)
-                        if getattr(full_project, 'archived', False):
-                            continue
-                    except:
-                        continue
-
-                # Récupérer les MR du projet
-                try:
-                    merge_requests = project.mergerequests.list(all=True, per_page=100)
-                except:
-                    # Si pas d'accès aux MR du projet, passer au suivant
+                if _should_skip_archived_project(gl_client, project.id, include_archived):
                     continue
 
-                if not merge_requests:
-                    continue
-
-                print(f"📝 Projet '{getattr(project, 'name', 'N/A')}': {len(merge_requests)} MR")
-
-                for mr in merge_requests:
-                    try:
-                        # Récupérer les détails complets de la MR
-                        try:
-                            full_mr = project.mergerequests.get(mr.iid)
-                        except:
-                            full_mr = mr
-
-                        # Données utilisateurs
-                        author = getattr(full_mr, 'author', {}) or {}
-                        assignee = getattr(full_mr, 'assignee', {}) or {}
-                        merge_user = getattr(full_mr, 'merge_user', {}) or {}
-                        reviewers = getattr(full_mr, 'reviewers', []) or []
-
-                        # Données pipeline
-                        head_pipeline = getattr(full_mr, 'head_pipeline', {}) or {}
-                        pipeline_status = head_pipeline.get('status', 'N/A') if head_pipeline else 'N/A'
-
-                        mr_info = {
-                            'id_merge_request': getattr(full_mr, 'id', 0),
-                            'iid_interne': getattr(full_mr, 'iid', 0),
-                            'id_projet': getattr(full_mr, 'project_id', 0),
-                            'titre': getattr(full_mr, 'title', 'N/A'),
-                            'description': getattr(full_mr, 'description', 'N/A') or 'N/A',
-                            'etat': _translate_state(getattr(full_mr, 'state', 'N/A')),
-                            'brouillon': "Oui" if getattr(full_mr, 'draft', False) else "Non",
-                            'date_creation': _format_date(getattr(full_mr, 'created_at', None)),
-                            'date_mise_jour': _format_date(getattr(full_mr, 'updated_at', None)),
-                            'date_fusion': _format_date(getattr(full_mr, 'merged_at', None)),
-                            'date_fermeture': _format_date(getattr(full_mr, 'closed_at', None)),
-                            'branche_source': getattr(full_mr, 'source_branch', 'N/A'),
-                            'branche_cible': getattr(full_mr, 'target_branch', 'N/A'),
-                            'id_auteur': author.get('id', 0) if author else 0,
-                            'id_assignee': assignee.get('id', 0) if assignee else 0,
-                            'id_reviewers': _extract_reviewers_ids(reviewers),
-                            'id_fusionneur': merge_user.get('id', 0) if merge_user else 0,
-                            'statut_fusion': _translate_merge_status(
-                                getattr(full_mr, 'merge_status', 'N/A')
-                            ),
-                            'statut_detaille': _translate_detailed_status(
-                                getattr(full_mr, 'detailed_merge_status', 'N/A')
-                            ),
-                            'conflits': "Oui" if getattr(full_mr, 'has_conflicts', False) else "Non",
-                            'pipeline_statut': pipeline_status
-                        }
-
-                        mrs_data.append(mr_info)
-                        filtered_mrs += 1
-
-                    except Exception as mr_error:
-                        print(f"⚠️ Erreur MR ID {getattr(mr, 'id', 'N/A')}: {mr_error}")
-                        continue
+                # Traiter les MR du projet
+                filtered_mrs = _process_project_mrs(project, mrs_data, filtered_mrs)
 
                 processed_projects += 1
 
@@ -259,14 +318,12 @@ def extract_merge_requests(
         # Créer le DataFrame
         if mrs_data:
             df = pd.DataFrame(mrs_data)
-
             # Trier par date de création (plus récentes en premier)
             df = df.sort_values('date_creation', ascending=False)
             df = df.reset_index(drop=True)
-
             return df
-        else:
-            return pd.DataFrame()
+        
+        return pd.DataFrame()
 
     except Exception as e:
         print(f"❌ Erreur lors de l'extraction des Merge Requests: {e}")

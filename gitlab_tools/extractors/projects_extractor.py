@@ -91,24 +91,102 @@ def _is_empty_project(project) -> str:
         "Oui" si vide, "Non" sinon
     """
     try:
-        # Vérifier s'il y a une branche par défaut
-        default_branch = getattr(project, 'default_branch', None)
-        if not default_branch:
+        # Essayer de récupérer la liste des commits
+        commits = list(project.commits.list(per_page=1, get_all=False))
+        if not commits:
             return "Oui"
-
-        # Vérifier s'il y a des commits
-        try:
-            commits = project.commits.list(per_page=1)
-            if not commits:
-                return "Oui"
-        except:
-            # Si on ne peut pas accéder aux commits, considérer comme vide
-            return "Oui"
-
         return "Non"
-
     except Exception:
-        return "Inconnu"
+        # Si on ne peut pas accéder aux commits, considérer comme vide
+        return "Oui"
+
+
+def _extract_namespace_info(project) -> tuple[str, str]:
+    """
+    Extrait les informations du namespace
+
+    Args:
+        project: Objet projet GitLab
+
+    Returns:
+        Tuple (nom_namespace, type_namespace)
+    """
+    namespace = getattr(project, 'namespace', {})
+    namespace_name = (
+        namespace.get('name', 'N/A') if isinstance(namespace, dict) else str(namespace)
+    )
+    namespace_kind = (
+        namespace.get('kind', 'user') if isinstance(namespace, dict) else 'user'
+    )
+    return namespace_name, namespace_kind
+
+
+def _extract_owner_info(project) -> str:
+    """
+    Extrait les informations du propriétaire
+
+    Args:
+        project: Objet projet GitLab
+
+    Returns:
+        Nom du propriétaire
+    """
+    owner = getattr(project, 'owner', {})
+    return owner.get('name', 'N/A') if isinstance(owner, dict) else 'N/A'
+
+
+def _extract_last_commit_date(project) -> str:
+    """
+    Extrait la date du dernier commit
+
+    Args:
+        project: Objet projet GitLab
+
+    Returns:
+        Date formatée du dernier commit ou "N/A"
+    """
+    try:
+        if getattr(project, 'default_branch', None):
+            commits = project.commits.list(per_page=1)
+            if commits:
+                return _format_date(getattr(commits[0], 'created_at', None))
+    except Exception:
+        pass
+    return "N/A"
+
+
+def _build_project_info(project) -> Dict[str, Any]:
+    """
+    Construit les informations du projet
+
+    Args:
+        project: Objet projet GitLab
+
+    Returns:
+        Dictionnaire avec les informations du projet
+    """
+    namespace_name, namespace_kind = _extract_namespace_info(project)
+    owner_name = _extract_owner_info(project)
+    last_activity = getattr(project, 'last_activity_at', None)
+    last_commit_date = _extract_last_commit_date(project)
+    is_archived = getattr(project, 'archived', False)
+
+    return {
+        'id_projet': getattr(project, 'id', 0),
+        'nom_projet': getattr(project, 'name', 'N/A'),
+        'nom_complet': getattr(project, 'path_with_namespace', 'N/A'),
+        'url_web': getattr(project, 'web_url', 'N/A'),
+        'namespace': namespace_name,
+        'type_namespace': _translate_namespace_kind(namespace_kind),
+        'proprietaire': owner_name,
+        'date_creation': _format_date(getattr(project, 'created_at', None)),
+        'derniere_activite': _format_date(last_activity),
+        'dernier_commit': last_commit_date,
+        'langage_principal': "N/A",
+        'etat': _determine_project_state(project),
+        'archivé': "Oui" if is_archived else "Non",
+        'vide': _is_empty_project(project),
+    }
 
 
 def extract_projects(
@@ -143,59 +221,8 @@ def extract_projects(
                 if not include_archived and is_archived:
                     continue
 
-                # Informations du namespace
-                namespace = getattr(project, 'namespace', {})
-                namespace_name = (
-                    namespace.get('name', 'N/A') if isinstance(namespace, dict) else str(namespace)
-                )
-                namespace_kind = (
-                    namespace.get('kind', 'user') if isinstance(namespace, dict) else 'user'
-                )
-
-                # Propriétaire du projet
-                owner = getattr(project, 'owner', {})
-                owner_name = owner.get('name', 'N/A') if isinstance(owner, dict) else 'N/A'
-
-                # Dernière activité
-                last_activity = getattr(project, 'last_activity_at', None)
-
-                # Essayer de récupérer le dernier commit
-                last_commit_date = "N/A"
-                try:
-                    if getattr(project, 'default_branch', None):
-                        commits = project.commits.list(per_page=1)
-                        if commits:
-                            last_commit_date = _format_date(getattr(commits[0], 'created_at', None))
-                except:
-                    last_commit_date = "N/A"
-
-                # Langage principal - utiliser une approche simple pour éviter les erreurs d'API
-                main_language = "N/A"
-                try:
-                    # Pour l'instant, laisser N/A car l'API languages() pose des problèmes de type
-                    # TODO: Améliorer cette logique si nécessaire
-                    main_language = "N/A"
-                except Exception:
-                    main_language = "N/A"
-
-                # Extraire les informations du projet selon les spécifications
-                project_info = {
-                    'id_projet': getattr(project, 'id', 0),
-                    'nom_projet': getattr(project, 'name', 'N/A'),
-                    'nom_complet': getattr(project, 'path_with_namespace', 'N/A'),
-                    'url_web': getattr(project, 'web_url', 'N/A'),
-                    'namespace': namespace_name,
-                    'type_namespace': _translate_namespace_kind(namespace_kind),
-                    'proprietaire': owner_name,
-                    'date_creation': _format_date(getattr(project, 'created_at', None)),
-                    'derniere_activite': _format_date(last_activity),
-                    'dernier_commit': last_commit_date,
-                    'langage_principal': main_language,
-                    'etat': _determine_project_state(project),
-                    'archivé': "Oui" if is_archived else "Non",
-                    'vide': _is_empty_project(project),
-                }
-
+                # Construire les informations du projet
+                project_info = _build_project_info(project)
                 projects_data.append(project_info)
                 filtered_projects += 1
 

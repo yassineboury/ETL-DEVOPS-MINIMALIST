@@ -365,7 +365,7 @@ def get_user_statistics(gl_client: python_gitlab.Gitlab) -> Dict[str, Any]:
                         activity_date = datetime.strptime(last_activity, "%Y-%m-%d").replace(tzinfo=None)
                         if activity_date > thirty_days_ago:
                             stats['recent_activity'] += 1
-                    except:
+                    except (ValueError, TypeError):
                         pass
 
             except Exception:

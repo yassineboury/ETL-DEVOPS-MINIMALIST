@@ -81,6 +81,120 @@ class GitLabClient:
 
         return self._load_config(str(config_path))
 
+    def _determine_url(self, url: Optional[str]) -> str:
+        """
+        Détermine l'URL GitLab à utiliser
+
+        Args:
+            url: URL fournie explicitement
+
+        Returns:
+            URL GitLab valide
+
+        Raises:
+            ValueError: Si aucune URL n'est trouvée
+        """
+        gitlab_url = url or (self.config.get('gitlab', {}).get('url') if self.config else None)
+        if not gitlab_url:
+            raise ValueError("URL GitLab manquante dans la configuration")
+        return gitlab_url
+
+    def _determine_token(self, token: Optional[str]) -> str:
+        """
+        Détermine le token GitLab à utiliser
+
+        Args:
+            token: Token fourni explicitement
+
+        Returns:
+            Token GitLab valide
+
+        Raises:
+            ValueError: Si aucun token valide n'est trouvé
+        """
+        gitlab_token = (token or
+                      os.getenv('GITLAB_TOKEN') or
+                      (self.config.get('gitlab', {}).get('token') if self.config else None))
+
+        if not gitlab_token or gitlab_token.startswith('${'):
+            raise ValueError(
+                "Token GitLab manquant. Vérifiez votre fichier .env ou la configuration"
+            )
+        return gitlab_token
+
+    def _create_gitlab_client(self, gitlab_url: str, gitlab_token: str) -> python_gitlab.Gitlab:
+        """
+        Crée le client GitLab avec les paramètres appropriés
+
+        Args:
+            gitlab_url: URL de l'instance GitLab
+            gitlab_token: Token d'authentification
+
+        Returns:
+            Client GitLab configuré
+        """
+        print(f"🔗 Connexion à GitLab: {gitlab_url}")
+
+        # Créer le client avec vérification SSL désactivée pour les instances internes
+        if "oncf.net" in gitlab_url.lower() or "localhost" in gitlab_url.lower():
+            print("⚠️ Désactivation de la vérification SSL pour instance interne")
+            return python_gitlab.Gitlab(gitlab_url, private_token=gitlab_token, ssl_verify=False)
+        else:
+            return python_gitlab.Gitlab(gitlab_url, private_token=gitlab_token)
+
+    def _test_connection(self, gitlab_url: str) -> None:
+        """
+        Teste la connexion GitLab avec plusieurs méthodes
+
+        Args:
+            gitlab_url: URL de l'instance GitLab
+
+        Raises:
+            ConnectionError: Si aucun test de connexion ne réussit
+        """
+        if not self.client:
+            raise ConnectionError("Client GitLab non initialisé")
+
+        try:
+            # Première méthode : via self.client.user
+            if hasattr(self.client, 'user') and self.client.user:
+                current_user = self.client.users.get(self.client.user.id)
+            else:
+                # Deuxième méthode : via l'API directement
+                current_user = self.client.user
+
+            if current_user:
+                print("✅ Connexion GitLab réussie")
+                print(
+                    f"👤 Utilisateur connecté: {getattr(current_user, 'name', 'N/A')} "
+                    f"(@{getattr(current_user, 'username', 'N/A')})"
+                )
+                print(f"🏢 Instance: {gitlab_url}")
+                return
+
+        except Exception as auth_error:
+            print(f"❌ Erreur lors de la vérification utilisateur: {auth_error}")
+
+        # Test alternatif : essayer de lister les projets
+        try:
+            self.client.projects.list(per_page=1, get_all=False)
+            print("✅ Connexion GitLab réussie (test via projets)")
+            print(f"🏢 Instance: {gitlab_url}")
+            print("📊 Accès confirmé via API")
+            return
+        except Exception:
+            pass
+
+        # Test final : essayer une requête version
+        try:
+            version = self.client.version()
+            print("✅ Connexion GitLab réussie (test via version)")
+            print(f"🏢 Instance: {gitlab_url}")
+            print(f"📊 Version GitLab: {version}")
+            return
+        except Exception:
+            raise ConnectionError("Impossible de valider la connexion GitLab")
+
     def connect(
         self, url: Optional[str] = None, token: Optional[str] = None
     ) -> python_gitlab.Gitlab:
@@ -98,66 +212,13 @@ class GitLabClient:
             Exception: En cas d'erreur de connexion
         """
         try:
-            # Déterminer l'URL
-            gitlab_url = url or (self.config.get('gitlab', {}).get('url') if self.config else None)
-            if not gitlab_url:
-                raise ValueError("URL GitLab manquante dans la configuration")
+            # Déterminer les paramètres de connexion
+            gitlab_url = self._determine_url(url)
+            gitlab_token = self._determine_token(token)
 
-            # Déterminer le token
-            gitlab_token = (token or
-                          os.getenv('GITLAB_TOKEN') or
-                          (self.config.get('gitlab', {}).get('token') if self.config else None))
-
-            if not gitlab_token or gitlab_token.startswith('${'):
-                raise ValueError(
-                    "Token GitLab manquant. Vérifiez votre fichier .env ou la configuration"
-                )
-
-            # Créer le client GitLab
-            print(f"🔗 Connexion à GitLab: {gitlab_url}")
-
-            # Créer le client avec vérification SSL désactivée pour les instances internes
-            if "oncf.net" in gitlab_url.lower() or "localhost" in gitlab_url.lower():
-                print("⚠️ Désactivation de la vérification SSL pour instance interne")
-                self.client = python_gitlab.Gitlab(
-                    gitlab_url, private_token=gitlab_token, ssl_verify=False
-                )
-            else:
-                self.client = python_gitlab.Gitlab(gitlab_url, private_token=gitlab_token)
-
-            # Tester la connexion en récupérant l'utilisateur actuel
-            try:
-                # Première méthode : via self.client.user
-                if hasattr(self.client, 'user') and self.client.user:
-                    current_user = self.client.users.get(self.client.user.id)
-                else:
-                    # Deuxième méthode : via l'API directement
-                    current_user = self.client.user
-
-                if current_user:
-                    print("✅ Connexion GitLab réussie")
-                    print(
-                        f"👤 Utilisateur connecté: {getattr(current_user, 'name', 'N/A')} "
-                        f"(@{getattr(current_user, 'username', 'N/A')})"
-                    )
-                    print(f"🏢 Instance: {gitlab_url}")
-                else:
-                    # Test alternatif : essayer de lister les projets
-                    self.client.projects.list(per_page=1, get_all=False)
-                    print("✅ Connexion GitLab réussie (test via projets)")
-                    print(f"🏢 Instance: {gitlab_url}")
-                    print("📊 Accès confirmé via API")
-
-            except Exception as auth_error:
-                print(f"❌ Erreur lors de la vérification utilisateur: {auth_error}")
-                # Test final : essayer une requête simple
-                try:
-                    version = self.client.version()
-                    print("✅ Connexion GitLab réussie (test via version)")
-                    print(f"🏢 Instance: {gitlab_url}")
-                    print(f"📊 Version GitLab: {version}")
-                except:
-                    raise
+            # Créer et tester le client
+            self.client = self._create_gitlab_client(gitlab_url, gitlab_token)
+            self._test_connection(gitlab_url)
 
             self.is_connected = True
             return self.client
@@ -212,7 +273,7 @@ class GitLabClient:
                     client.projects.list(per_page=1, get_all=False)
                     print("✅ Test de connexion GitLab: OK (via projets)")
                     return True
-            except:
+            except Exception:
                 # Test final : version de l'API
                 client.version()
                 print("✅ Test de connexion GitLab: OK (via version)")
@@ -221,6 +282,109 @@ class GitLabClient:
         except Exception as e:
             print(f"❌ Test de connexion GitLab: ÉCHEC - {e}")
             return False
+
+    def _get_admin_statistics(self, client: python_gitlab.Gitlab) -> Dict[str, Any]:
+        """
+        Récupère les statistiques administrateur
+
+        Args:
+            client: Client GitLab
+
+        Returns:
+            Dictionnaire avec les statistiques admin
+        """
+        try:
+            statistics = client.statistics.get()
+            info = {}
+
+            # Les vraies statistiques sont dans l'attribut 'attributes' ou directement accessibles
+            if hasattr(statistics, 'attributes') and statistics.attributes:
+                # Format ONCF GitLab
+                attrs = statistics.attributes
+                info.update({
+                    'total_projects': int(attrs.get('projects', 0).replace(',', '')),
+                    'total_users': int(attrs.get('users', 0).replace(',', '')),
+                    'active_users': int(attrs.get('active_users', 0).replace(',', '')),
+                    'total_groups': int(attrs.get('groups', 0).replace(',', '')),
+                    'total_issues': int(attrs.get('issues', 0).replace(',', '')),
+                    'total_merge_requests': int(attrs.get('merge_requests', 0).replace(',', '')),
+                    'total_notes': int(attrs.get('notes', 0).replace(',', '')),
+                    'total_snippets': int(attrs.get('snippets', 0).replace(',', '')),
+                    'total_ssh_keys': int(attrs.get('ssh_keys', 0).replace(',', '')),
+                    'total_forks': int(attrs.get('forks', 0).replace(',', '')),
+                    'total_milestones': int(attrs.get('milestones', 0).replace(',', '')),
+                })
+            elif hasattr(statistics, 'projects'):
+                # Accès direct aux attributs
+                info.update({
+                    'total_projects': getattr(statistics, 'projects', 0),
+                    'total_users': getattr(statistics, 'users', 0),
+                    'active_users': getattr(statistics, 'active_users', 0),
+                    'total_groups': getattr(statistics, 'groups', 0),
+                    'total_issues': getattr(statistics, 'issues', 0),
+                    'total_merge_requests': getattr(statistics, 'merge_requests', 0),
+                    'total_notes': getattr(statistics, 'notes', 0),
+                })
+            else:
+                # Fallback vers format standard
+                info.update({
+                    'projects_count': getattr(statistics, 'counts', {}).get('projects', 0),
+                    'users_count': getattr(statistics, 'counts', {}).get('users', 0),
+                    'groups_count': getattr(statistics, 'counts', {}).get('groups', 0),
+                    'issues_count': getattr(statistics, 'counts', {}).get('issues', 0),
+                    'merge_requests_count': getattr(statistics, 'counts', {}).get('merge_requests', 0),
+                })
+
+            print("📊 Statistiques globales disponibles")
+            return info
+
+        except Exception:
+            print("⚠️ Statistiques administrateur non disponibles (permissions insuffisantes)")
+            raise
+
+    def _get_user_statistics(self, client: python_gitlab.Gitlab) -> Dict[str, Any]:
+        """
+        Récupère les statistiques basées sur l'accès utilisateur
+
+        Args:
+            client: Client GitLab
+
+        Returns:
+            Dictionnaire avec les statistiques utilisateur
+        """
+        info = {}
+        try:
+            # Compter les projets accessibles
+            client.projects.list(get_all=False, per_page=100)
+            total_projects = len(client.projects.list(all=True))
+            info['accessible_projects_count'] = total_projects
+
+            # Compter les groupes accessibles
+            try:
+                client.groups.list(get_all=False, per_page=100)
+                total_groups = len(client.groups.list(all=True))
+                info['accessible_groups_count'] = total_groups
+            except Exception:
+                info['accessible_groups_count'] = 0
+
+            # Essayer de récupérer des infos sur l'utilisateur actuel
+            try:
+                current_user = client.user
+                if current_user:
+                    info['current_user'] = {
+                        'username': getattr(current_user, 'username', 'N/A'),
+                        'name': getattr(current_user, 'name', 'N/A'),
+                        'is_admin': getattr(current_user, 'is_admin', False)
+                    }
+            except Exception:
+                pass
+
+            print("📊 Statistiques utilisateur (ce que vous pouvez voir)")
+            return info
+
+        except Exception as user_stats_error:
+            print(f"❌ Impossible de récupérer les statistiques utilisateur: {user_stats_error}")
+            return {'projects_accessible': False}
 
     def get_instance_info(self) -> Dict[str, Any]:
         """
@@ -237,85 +401,15 @@ class GitLabClient:
                 'version': version,
             }
 
-            # Essayer de récupérer les statistiques si disponibles (admin seulement)
+            # Essayer de récupérer les statistiques admin en premier
             try:
-                statistics = client.statistics.get()
-
-                # Les vraies statistiques sont dans l'attribut 'attributes' ou directement accessibles
-                if hasattr(statistics, 'attributes') and statistics.attributes:
-                    # Format ONCF GitLab
-                    attrs = statistics.attributes
-                    info.update({
-                        'total_projects': int(attrs.get('projects', 0).replace(',', '')),
-                        'total_users': int(attrs.get('users', 0).replace(',', '')),
-                        'active_users': int(attrs.get('active_users', 0).replace(',', '')),
-                        'total_groups': int(attrs.get('groups', 0).replace(',', '')),
-                        'total_issues': int(attrs.get('issues', 0).replace(',', '')),
-                        'total_merge_requests': int(attrs.get('merge_requests', 0).replace(',', '')),
-                        'total_notes': int(attrs.get('notes', 0).replace(',', '')),
-                        'total_snippets': int(attrs.get('snippets', 0).replace(',', '')),
-                        'total_ssh_keys': int(attrs.get('ssh_keys', 0).replace(',', '')),
-                        'total_forks': int(attrs.get('forks', 0).replace(',', '')),
-                        'total_milestones': int(attrs.get('milestones', 0).replace(',', '')),
-                    })
-                elif hasattr(statistics, 'projects'):
-                    # Accès direct aux attributs
-                    info.update({
-                        'total_projects': getattr(statistics, 'projects', 0),
-                        'total_users': getattr(statistics, 'users', 0),
-                        'active_users': getattr(statistics, 'active_users', 0),
-                        'total_groups': getattr(statistics, 'groups', 0),
-                        'total_issues': getattr(statistics, 'issues', 0),
-                        'total_merge_requests': getattr(statistics, 'merge_requests', 0),
-                        'total_notes': getattr(statistics, 'notes', 0),
-                    })
-                else:
-                    # Fallback vers format standard
-                    info.update({
-                        'projects_count': getattr(statistics, 'counts', {}).get('projects', 0),
-                        'users_count': getattr(statistics, 'counts', {}).get('users', 0),
-                        'groups_count': getattr(statistics, 'counts', {}).get('groups', 0),
-                        'issues_count': getattr(statistics, 'counts', {}).get('issues', 0),
-                        'merge_requests_count': getattr(statistics, 'counts', {}).get('merge_requests', 0),
-                    })
-
-                print("📊 Statistiques globales disponibles")
-
+                admin_stats = self._get_admin_statistics(client)
+                info.update(admin_stats)
             except Exception:
                 print("⚠️ Statistiques administrateur non disponibles (permissions insuffisantes)")
-
-                # Récupérer les statistiques basées sur l'accès utilisateur
-                try:
-                    # Compter les projets accessibles
-                    client.projects.list(get_all=False, per_page=100)
-                    total_projects = len(client.projects.list(all=True))
-                    info['accessible_projects_count'] = total_projects
-
-                    # Compter les groupes accessibles
-                    try:
-                        client.groups.list(get_all=False, per_page=100)
-                        total_groups = len(client.groups.list(all=True))
-                        info['accessible_groups_count'] = total_groups
-                    except:
-                        info['accessible_groups_count'] = 0
-
-                    # Essayer de récupérer des infos sur l'utilisateur actuel
-                    try:
-                        current_user = client.user
-                        if current_user:
-                            info['current_user'] = {
-                                'username': getattr(current_user, 'username', 'N/A'),
-                                'name': getattr(current_user, 'name', 'N/A'),
-                                'is_admin': getattr(current_user, 'is_admin', False)
-                            }
-                    except:
-                        pass
-
-                    print("📊 Statistiques utilisateur (ce que vous pouvez voir)")
-
-                except Exception as user_stats_error:
-                    print(f"❌ Impossible de récupérer les statistiques utilisateur: {user_stats_error}")
-                    info['projects_accessible'] = False
+                # Récupérer les statistiques utilisateur
+                user_stats = self._get_user_statistics(client)
+                info.update(user_stats)
 
             print("📊 Informations de l'instance GitLab:")
             for key, value in info.items():
@@ -372,7 +466,7 @@ class GitLabClient:
                             last_activity = datetime.fromisoformat(p.last_activity_at.replace('Z', '+00:00'))
                             if last_activity > thirty_days_ago.replace(tzinfo=last_activity.tzinfo):
                                 active_projects.append(p)
-                    except:
+                    except Exception:
                         continue
 
                 stats['active_projects_last_30_days'] = len(active_projects)
