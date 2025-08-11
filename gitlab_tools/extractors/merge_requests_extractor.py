@@ -153,7 +153,7 @@ def _should_skip_archived_project(
     """
     if include_archived:
         return False
-        
+
     try:
         full_project = gl_client.projects.get(project_id)
         return getattr(full_project, 'archived', False)
@@ -322,7 +322,7 @@ def extract_merge_requests(
             df = df.sort_values('date_creation', ascending=False)
             df = df.reset_index(drop=True)
             return df
-        
+
         return pd.DataFrame()
 
     except Exception as e:
