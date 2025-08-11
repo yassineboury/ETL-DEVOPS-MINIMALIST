@@ -302,6 +302,114 @@ class GitLabExcelExporter:
         except Exception as e:
             print(f"⚠️ Erreur création statistiques: {e}")
 
+    def export_merge_requests(self, df_mrs: pd.DataFrame, filename: str = "gitlab_merge_requests.xlsx") -> Optional[str]:
+        """
+        Exporte les Merge Requests vers Excel avec formatage et statistiques
+        
+        Args:
+            df_mrs: DataFrame des Merge Requests
+            filename: Nom du fichier
+            
+        Returns:
+            Chemin complet du fichier créé
+        """
+        if df_mrs.empty:
+            print("❌ Aucune donnée MR à exporter")
+            return None
+            
+        try:
+            output_path = self.export_dir / filename
+            
+            print(f"📝 Export de {len(df_mrs)} Merge Requests...")
+            
+            with pd.ExcelWriter(output_path, engine='openpyxl') as writer:
+                # Onglet principal des MR
+                df_mrs.to_excel(writer, sheet_name='Merge Requests', index=False)
+                
+                # Formater l'onglet principal
+                workbook = writer.book
+                worksheet = workbook['Merge Requests']
+                
+                self._apply_header_style(worksheet, len(df_mrs.columns))
+                self._auto_adjust_columns(worksheet)
+                
+                # Figer la première ligne
+                worksheet.freeze_panes = "A2"
+                
+                # Ajouter les statistiques
+                self._add_mr_statistics(writer, df_mrs)
+                
+            print(f"✅ Export terminé: {output_path}")
+            return str(output_path)
+            
+        except Exception as e:
+            print(f"❌ Erreur export MR: {e}")
+            return None
+
+    def _add_mr_statistics(self, writer, df_mrs: pd.DataFrame):
+        """Ajoute des statistiques sur les Merge Requests"""
+        try:
+            stats_data = []
+            
+            # Statistiques générales
+            stats_data.append(['=== STATISTIQUES MERGE REQUESTS ===', ''])
+            stats_data.append(['Total MR', len(df_mrs)])
+            
+            # Par état
+            if 'etat' in df_mrs.columns:
+                state_counts = df_mrs['etat'].value_counts()
+                stats_data.append(['', ''])
+                stats_data.append(['=== RÉPARTITION PAR ÉTAT ===', ''])
+                for state, count in state_counts.items():
+                    stats_data.append([f'État {state}', count])
+            
+            # Par statut de fusion
+            if 'statut_fusion' in df_mrs.columns:
+                merge_status_counts = df_mrs['statut_fusion'].value_counts()
+                stats_data.append(['', ''])
+                stats_data.append(['=== STATUTS DE FUSION ===', ''])
+                for status, count in merge_status_counts.items():
+                    stats_data.append([f'{status}', count])
+            
+            # Conflits
+            if 'conflits' in df_mrs.columns:
+                conflicts_counts = df_mrs['conflits'].value_counts()
+                stats_data.append(['', ''])
+                stats_data.append(['=== CONFLITS ===', ''])
+                for conflict, count in conflicts_counts.items():
+                    stats_data.append([f'Conflits: {conflict}', count])
+            
+            # Par projet (top 10)
+            if 'id_projet' in df_mrs.columns:
+                project_counts = df_mrs['id_projet'].value_counts().head(10)
+                stats_data.append(['', ''])
+                stats_data.append(['=== TOP 10 PROJETS AVEC MR ===', ''])
+                for project, count in project_counts.items():
+                    stats_data.append([f'Projet {project}', count])
+            
+            # Par auteur (top 10)
+            if 'id_auteur' in df_mrs.columns:
+                author_counts = df_mrs['id_auteur'].value_counts().head(10)
+                stats_data.append(['', ''])
+                stats_data.append(['=== TOP 10 AUTEURS MR ===', ''])
+                for author, count in author_counts.items():
+                    stats_data.append([f'Utilisateur {author}', count])
+            
+            # Créer le DataFrame des statistiques
+            stats_df = pd.DataFrame(stats_data, columns=['Métrique', 'Valeur'])
+            
+            # Exporter vers un onglet séparé
+            stats_df.to_excel(writer, sheet_name='Statistiques', index=False)
+            
+            # Formater l'onglet statistiques
+            workbook = writer.book
+            stats_worksheet = workbook['Statistiques']
+            self._apply_header_style(stats_worksheet, 2)
+            self._auto_adjust_columns(stats_worksheet)
+            
+        except Exception as e:
+            print(f"⚠️ Erreur création statistiques MR: {e}")
+
 
 # Fonctions utilitaires publiques
     
@@ -421,6 +529,21 @@ def export_projects_to_excel(df_projects: pd.DataFrame, filename: str = "gitlab_
     """
     exporter = GitLabExcelExporter()
     return exporter.export_projects(df_projects, filename)
+
+
+def export_merge_requests_to_excel(df_mrs: pd.DataFrame, filename: str = "gitlab_merge_requests.xlsx") -> Optional[str]:
+    """
+    Fonction utilitaire pour exporter les Merge Requests GitLab vers Excel
+    
+    Args:
+        df_mrs: DataFrame des Merge Requests
+        filename: Nom du fichier de sortie
+        
+    Returns:
+        Chemin du fichier créé ou None si erreur
+    """
+    exporter = GitLabExcelExporter()
+    return exporter.export_merge_requests(df_mrs, filename)
 
 
 def export_events_to_excel(df_events: pd.DataFrame, filename: str = "gitlab_events.xlsx") -> str:
