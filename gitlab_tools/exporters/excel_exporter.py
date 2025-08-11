@@ -110,7 +110,10 @@ class GitLabExcelExporter:
             # Créer le workbook et la feuille
             workbook = openpyxl.Workbook()
             worksheet = workbook.active
-            worksheet.title = "Utilisateurs GitLab"
+            if worksheet is None:
+                worksheet = workbook.create_sheet("Utilisateurs GitLab")
+            else:
+                worksheet.title = "Utilisateurs GitLab"
 
             # Ajouter les données
             for row in dataframe_to_rows(df_users, index=False, header=True):
@@ -461,10 +464,11 @@ class GitLabExcelExporter:
                 df_projects.to_excel(writer, sheet_name='Projets GitLab', index=False)
 
                 # Formatage basique
-                worksheet = writer.sheets['Projets GitLab']
-                self._apply_header_style(worksheet, len(df_projects.columns))
-                self._auto_adjust_columns(worksheet)
-                worksheet.freeze_panes = "A2"
+                worksheet = writer.sheets.get('Projets GitLab')
+                if worksheet is not None:
+                    self._apply_header_style(worksheet, len(df_projects.columns))
+                    self._auto_adjust_columns(worksheet)
+                    worksheet.freeze_panes = "A2"
 
             print(f"✅ Fichier projets Excel créé: {file_path}")
             print(f"📊 {len(df_projects)} projets exportés")
@@ -497,26 +501,29 @@ class GitLabExcelExporter:
                 # Feuille utilisateurs
                 if not df_users.empty:
                     df_users.to_excel(writer, sheet_name='Utilisateurs', index=False)
-                    worksheet = writer.sheets['Utilisateurs']
-                    self._apply_header_style(worksheet, len(df_users.columns))
-                    self._auto_adjust_columns(worksheet)
-                    worksheet.freeze_panes = "A2"
+                    worksheet = writer.sheets.get('Utilisateurs')
+                    if worksheet is not None:
+                        self._apply_header_style(worksheet, len(df_users.columns))
+                        self._auto_adjust_columns(worksheet)
+                        worksheet.freeze_panes = "A2"
 
                 # Feuille projets
                 if not df_projects.empty:
                     df_projects.to_excel(writer, sheet_name='Projets', index=False)
-                    worksheet = writer.sheets['Projets']
-                    self._apply_header_style(worksheet, len(df_projects.columns))
-                    self._auto_adjust_columns(worksheet)
-                    worksheet.freeze_panes = "A2"
+                    worksheet = writer.sheets.get('Projets')
+                    if worksheet is not None:
+                        self._apply_header_style(worksheet, len(df_projects.columns))
+                        self._auto_adjust_columns(worksheet)
+                        worksheet.freeze_panes = "A2"
 
                 # Feuille statistiques
                 if stats:
                     stats_df = pd.DataFrame(list(stats.items()), columns=[METRIC_COLUMN_NAME, 'Valeur'])
                     stats_df.to_excel(writer, sheet_name='Statistiques', index=False)
-                    worksheet = writer.sheets['Statistiques']
-                    self._apply_header_style(worksheet, 2)
-                    self._auto_adjust_columns(worksheet)
+                    worksheet = writer.sheets.get('Statistiques')
+                    if worksheet is not None:
+                        self._apply_header_style(worksheet, 2)
+                        self._auto_adjust_columns(worksheet)
 
             print(f"✅ Rapport complet Excel créé: {file_path}")
             return str(file_path)

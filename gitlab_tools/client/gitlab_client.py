@@ -192,8 +192,8 @@ class GitLabClient:
             print(f"🏢 Instance: {gitlab_url}")
             print(f"📊 Version GitLab: {version}")
             return
-        except Exception:
-            raise ConnectionError("Impossible de valider la connexion GitLab")
+        except Exception as e:
+            raise ConnectionError("Impossible de valider la connexion GitLab") from e
 
     def connect(
         self, url: Optional[str] = None, token: Optional[str] = None

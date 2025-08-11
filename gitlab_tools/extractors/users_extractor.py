@@ -2,7 +2,6 @@
 Extracteur d'utilisateurs GitLab
 Module pour extraire uniquement les vrais utilisateurs (pas les bots/services)
 """
-import re
 from datetime import datetime
 from typing import Any, Dict, Optional
 
@@ -58,8 +57,23 @@ def _format_name(name: Optional[str]) -> str:
     if not name or name.strip() == "":
         return "N/A"
 
-    # Supprimer tout ce qui est entre parenthèses (y compris les parenthèses)
-    cleaned_name = re.sub(r'\s*\([^)]*\)', '', name)
+    # Supprimer le contenu entre parenthèses de manière sécurisée
+    # Utiliser une approche simple sans regex complexe pour éviter ReDoS
+    cleaned_name = name
+
+    # Supprimer toutes les occurrences de contenu entre parenthèses
+    while '(' in cleaned_name and ')' in cleaned_name:
+        start_paren = cleaned_name.find('(')
+        if start_paren == -1:
+            break
+        end_paren = cleaned_name.find(')', start_paren)
+        if end_paren == -1:
+            break
+        # Supprimer tout ce qui est entre parenthèses, y compris les parenthèses
+        cleaned_name = cleaned_name[:start_paren] + cleaned_name[end_paren + 1:]
+
+    # Nettoyer les espaces multiples
+    cleaned_name = ' '.join(cleaned_name.split())
 
     # Nettoyer le nom et capitaliser proprement
     formatted_name = cleaned_name.strip().title()
