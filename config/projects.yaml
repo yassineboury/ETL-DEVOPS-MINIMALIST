@@ -1,0 +1,41 @@
+# Liste des projets à analyser
+# Vous pouvez spécifier les projets par ID ou par path
+
+projects:
+  # Par ID de projet (recommandé)
+  - id: 123
+    name: "projet-web-frontend"
+  - id: 456  
+    name: "api-backend-users"
+  - id: 789
+    name: "microservice-notifications"
+    
+  # Ou par path GitLab (namespace/project)
+  - path: "equipe-dev/application-mobile"
+  - path: "equipe-ops/infrastructure-as-code"
+  
+  # Exemple avec plus de projets
+  # Ajoutez vos 200 projets ici...
+  - id: 101
+    name: "service-authentication"
+  - id: 102
+    name: "database-migration-tools"
+    
+# Alternative : vous pouvez aussi récupérer tous les projets d'un groupe
+groups:
+  - name: "equipe-dev"
+    id: 10
+  - name: "equipe-ops" 
+    id: 11
+
+# Configuration par projet (optionnel)
+project_config:
+  # Projets à exclure de l'analyse Sonar
+  exclude_from_sonar:
+    - 999
+    - "legacy/old-project"
+    
+  # Projets prioritaires (analysés en premier)
+  priority:
+    - 123
+    - 456

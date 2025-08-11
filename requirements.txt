@@ -1,0 +1,18 @@
+# APIs
+python-gitlab==6.2.0
+requests==2.32.4
+
+# Manipulation des données
+pandas==2.3.1
+
+# Génération Excel
+openpyxl==3.1.5
+
+# Configuration
+pyyaml==6.0.2
+
+# Variables d'environnement
+python-dotenv==1.1.1
+
+# Qualité de code  
+ruff==0.12.8
