@@ -1,29 +1,29 @@
 #!/usr/bin/env python3
 """
-Script pour nettoyer uniquement les anciens fichiers d'export GitLab
-Exécute seulement l'étape 1 de l'orchestrateur
+KENOBI MAESTRO - Nettoyage de la scène
+Exécute seulement le premier mouvement (nettoyage) du Maestro
 """
 
 import sys
 from pathlib import Path
 
-# Importer l'orchestrateur
-from orchestrator import GitLabExportOrchestrator
+# Importer le maestro
+from kenobi_maestro import KenobiMaestro
 
 
 def main():
-    """Nettoyage simple des anciens fichiers"""
-    print("🧹 NETTOYAGE DES ANCIENS FICHIERS GITLAB")
+    """Nettoyage simple de la scène avant spectacle"""
+    print("🎭 KENOBI MAESTRO - NETTOYAGE DE LA SCÈNE")
     print("=" * 50)
     
-    orchestrator = GitLabExportOrchestrator()
-    success = orchestrator.step_1_cleanup_old_files()
+    maestro = KenobiMaestro()
+    success = maestro.step_1_cleanup_old_files()
     
     if success:
-        print("\n✅ Nettoyage terminé avec succès!")
+        print("\n✅ Scène prête pour le spectacle!")
         return True
     else:
-        print("\n❌ Erreur lors du nettoyage!")
+        print("\n❌ Problème de préparation de scène!")
         return False
 
 

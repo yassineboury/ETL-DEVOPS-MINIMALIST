@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """
-Orchestrateur d'export GitLab KENOBI DEVOPS
-Gère les exports GitLab selon un processus clair et par étapes
+KENOBI MAESTRO - Orchestrateur d'export GitLab KENOBI DEVOPS
+Chef d'orchestre pour gérer les exports GitLab selon un processus clair et par étapes
 """
 
 import sys
@@ -23,9 +23,10 @@ from gitlab_tools.extractors.projects_extractor import extract_projects
 from gitlab_tools.exporters.excel_exporter import export_users_to_excel, export_projects_to_excel
 
 
-class GitLabExportOrchestrator:
+class KenobiMaestro:
     """
-    Orchestrateur pour gérer les exports GitLab de manière structurée
+    KENOBI MAESTRO - Chef d'orchestre pour gérer les exports GitLab de manière structurée
+    Dirige les 6 mouvements de l'export avec précision et élégance
     """
     
     def __init__(self):
@@ -53,12 +54,12 @@ class GitLabExportOrchestrator:
     
     def step_1_cleanup_old_files(self) -> bool:
         """
-        Étape 1: Supprimer les anciens fichiers du dossier exports/gitlab
+        🎼 PREMIER MOUVEMENT: Nettoyage de la scène avant le spectacle
         
         Returns:
             bool: True si succès, False sinon
         """
-        print("🧹 ÉTAPE 1: Nettoyage des anciens fichiers d'export")
+        print("🧹 PREMIER MOUVEMENT: Nettoyage de la scène")
         print("-" * 50)
         
         try:
@@ -105,12 +106,12 @@ class GitLabExportOrchestrator:
     
     def step_2_connect_gitlab(self) -> bool:
         """
-        Étape 2: Connexion à GitLab ONCF
+        🎼 DEUXIÈME MOUVEMENT: Accordage avec GitLab ONCF
         
         Returns:
             bool: True si succès, False sinon
         """
-        print("\n🔗 ÉTAPE 2: Connexion à GitLab ONCF")
+        print("\n🔗 DEUXIÈME MOUVEMENT: Accordage avec GitLab ONCF")
         print("-" * 50)
         
         try:
@@ -140,12 +141,12 @@ class GitLabExportOrchestrator:
     
     def step_3_extract_users(self) -> tuple[bool, int]:
         """
-        Étape 3: Extraction des utilisateurs GitLab
+        🎼 TROISIÈME MOUVEMENT: Mélodie des utilisateurs GitLab
         
         Returns:
             tuple: (succès, nombre d'utilisateurs)
         """
-        print("\n👥 ÉTAPE 3: Extraction des utilisateurs GitLab")
+        print("\n👥 TROISIÈME MOUVEMENT: Mélodie des utilisateurs GitLab")
         print("-" * 50)
         
         try:
@@ -180,12 +181,12 @@ class GitLabExportOrchestrator:
     
     def step_4_extract_projects(self) -> tuple[bool, int]:
         """
-        Étape 4: Extraction des projets GitLab
+        🎼 QUATRIÈME MOUVEMENT: Symphonie des projets GitLab
         
         Returns:
             tuple: (succès, nombre de projets)
         """
-        print("\n📁 ÉTAPE 4: Extraction des projets GitLab")
+        print("\n📁 QUATRIÈME MOUVEMENT: Symphonie des projets GitLab")
         print("-" * 50)
         
         try:
@@ -224,12 +225,12 @@ class GitLabExportOrchestrator:
     
     def step_5_export_to_excel(self) -> tuple[bool, list]:
         """
-        Étape 5: Export vers Excel
+        🎼 CINQUIÈME MOUVEMENT: Composition des partitions Excel
         
         Returns:
             tuple: (succès, liste des fichiers créés)
         """
-        print("\n📊 ÉTAPE 5: Export vers Excel")
+        print("\n📊 CINQUIÈME MOUVEMENT: Composition des partitions Excel")
         print("-" * 50)
         
         try:
@@ -285,7 +286,7 @@ class GitLabExportOrchestrator:
     
     def step_6_cleanup_and_summary(self, users_count: int, projects_count: int, created_files: list) -> bool:
         """
-        Étape 6: Nettoyage final et résumé
+        🎼 SIXIÈME MOUVEMENT: Final en apothéose et saluts
         
         Args:
             users_count: Nombre d'utilisateurs extraits
@@ -295,7 +296,7 @@ class GitLabExportOrchestrator:
         Returns:
             bool: True si succès
         """
-        print("\n🧹 ÉTAPE 6: Nettoyage final et résumé")
+        print("\n🧹 SIXIÈME MOUVEMENT: Final en apothéose et saluts")
         print("-" * 50)
         
         try:
@@ -314,23 +315,23 @@ class GitLabExportOrchestrator:
             
             # Résumé final
             print("\n" + "=" * 60)
-            print("🎉 EXPORT GITLAB TERMINÉ AVEC SUCCÈS!")
+            print("🎉 SYMPHONIE GITLAB TERMINÉE AVEC BRIO!")
             print("=" * 60)
             print(f"👥 Utilisateurs extraits: {users_count}")
             print(f"📁 Projets extraits: {projects_count}")
-            print(f"📊 Fichiers Excel créés: {len(created_files)}")
+            print(f"📊 Partitions Excel créées: {len(created_files)}")
             
             if created_files:
-                print("\n📁 Fichiers générés:")
+                print("\n🎼 Œuvres créées:")
                 for file_path in created_files:
                     file_size = Path(file_path).stat().st_size / 1024  # KB
                     print(f"   ✅ {Path(file_path).name} ({file_size:.1f} KB)")
                 
-                print(f"\n📂 Dossier: {self.exports_dir}")
+                print(f"\n📂 Conservatoire: {self.exports_dir}")
             
-            print(f"\n⏰ Export terminé le: {datetime.now().strftime('%d/%m/%Y à %H:%M:%S')}")
+            print(f"\n🎭 Rideau tombé le: {datetime.now().strftime('%d/%m/%Y à %H:%M:%S')}")
             
-            self._update_progress("Nettoyage et résumé terminés")
+            self._update_progress("🎉 Symphonie terminée")
             return True
             
         except Exception as e:
@@ -345,14 +346,14 @@ class GitLabExportOrchestrator:
         Returns:
             bool: True si tout s'est bien passé
         """
-        print("🚀 KENOBI DEVOPS - ORCHESTRATEUR D'EXPORT GITLAB")
+        print("🎭 KENOBI MAESTRO - CHEF D'ORCHESTRE GITLAB")
         print("=" * 60)
-        print(f"📅 Démarrage le: {datetime.now().strftime('%d/%m/%Y à %H:%M:%S')}")
+        print(f"🎼 Début de la symphonie le: {datetime.now().strftime('%d/%m/%Y à %H:%M:%S')}")
         print("=" * 60)
         
         # Initialiser la barre de progression principale
-        with tqdm(total=self.total_steps, desc="🔄 Étapes d'export", unit="étape", 
-                 bar_format="{desc}: {percentage:3.0f}%|{bar}| {n_fmt}/{total_fmt} étapes [{elapsed}<{remaining}]") as progress:
+        with tqdm(total=self.total_steps, desc="🎼 Mouvements symphoniques", unit="mouvement", 
+                 bar_format="{desc}: {percentage:3.0f}%|{bar}| {n_fmt}/{total_fmt} mouvements [{elapsed}<{remaining}]") as progress:
             
             self.main_progress = progress
             
@@ -385,14 +386,14 @@ class GitLabExportOrchestrator:
                     return False
                 
                 # Finaliser la barre de progression
-                progress.set_description("🎉 Export terminé")
+                progress.set_description("� Symphonie terminée")
                 progress.refresh()
                 
                 return True
                 
             except Exception as e:
-                print(f"\n❌ ERREUR CRITIQUE: {e}")
-                progress.set_description("❌ Erreur critique")
+                print(f"\n❌ DISSONANCE CRITIQUE: {e}")
+                progress.set_description("❌ Fausse note critique")
                 # Nettoyage d'urgence
                 if self.gitlab_client:
                     try:
@@ -405,11 +406,11 @@ class GitLabExportOrchestrator:
 
 
 def main():
-    """Point d'entrée principal"""
-    orchestrator = GitLabExportOrchestrator()
+    """Point d'entrée principal - Le chef prend sa baguette"""
+    maestro = KenobiMaestro()
     
-    # Lancer l'export complet
-    success = orchestrator.run_full_export()
+    # Lancer la symphonie complète
+    success = maestro.run_full_export()
     
     return success
 
