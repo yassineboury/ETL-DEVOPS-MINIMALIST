@@ -147,8 +147,163 @@ class GitLabExcelExporter:
             return str(file_path)
             
         except Exception as e:
-            print(f"❌ Erreur lors de l'export Excel: {e}")
+            print(f"❌ Erreur lors de l'export des événements: {e}")
             return ""
+    
+    def export_events(self, df_events: pd.DataFrame, filename: str = "gitlab_events.xlsx") -> str:
+        """
+        Exporte les événements vers Excel avec formatage
+        
+        Args:
+            df_events: DataFrame avec les données d'événements
+            filename: Nom du fichier
+            
+        Returns:
+            Chemin du fichier créé
+        """
+        try:
+            file_path = self.export_dir / filename
+            
+            with pd.ExcelWriter(file_path, engine='openpyxl') as writer:
+                # Export des données
+                df_events.to_excel(writer, sheet_name='Événements', index=False)
+                
+                # Récupérer la feuille pour le formatage
+                workbook = writer.book
+                worksheet = workbook['Événements']
+                
+                # Appliquer le style aux en-têtes
+                self._apply_header_style(worksheet, len(df_events.columns))
+                
+                # Auto-ajustement des colonnes
+                self._auto_adjust_columns(worksheet)
+                
+                # Formatage conditionnel pour les types d'événements
+                if not df_events.empty:
+                    # Colorer les différents types d'actions
+                    self._format_event_actions(worksheet, df_events)
+                
+                # Ajouter des statistiques dans un onglet séparé
+                self._add_events_statistics(writer, df_events)
+            
+            print(f"✅ Export événements réussi: {file_path}")
+            return str(file_path)
+            
+        except Exception as e:
+            print(f"❌ Erreur lors de l'export des événements: {e}")
+            return ""
+    
+    def _format_event_actions(self, worksheet, df_events: pd.DataFrame):
+        """
+        Applique un formatage conditionnel aux actions d'événements
+        
+        Args:
+            worksheet: Feuille Excel
+            df_events: DataFrame des événements
+        """
+        try:
+            # Trouver la colonne nom_action
+            action_col = None
+            for idx, col in enumerate(df_events.columns, 1):
+                if col == 'nom_action':
+                    action_col = idx
+                    break
+            
+            if action_col is None:
+                return
+            
+            # Couleurs pour différents types d'actions
+            action_colors = {
+                'ouvert': 'C6EFCE',      # Vert clair
+                'fermé': 'FFC7CE',       # Rouge clair  
+                'fusionné': 'FFEB9C',    # Jaune clair
+                'poussé': 'DDEBF7',      # Bleu clair
+                'commenté': 'E1D5E7',    # Violet clair
+                'créé': 'D4EDDA',        # Vert très clair
+                'mis à jour': 'F8D7DA'   # Rose clair
+            }
+            
+            # Appliquer les couleurs ligne par ligne
+            for row_idx in range(2, len(df_events) + 2):  # Commencer après l'en-tête
+                cell = worksheet.cell(row=row_idx, column=action_col)
+                if cell.value:
+                    action_value = str(cell.value).lower()
+                    
+                    for action, color in action_colors.items():
+                        if action in action_value:
+                            cell.fill = PatternFill(start_color=color, end_color=color, fill_type="solid")
+                            break
+                        
+        except Exception as e:
+            print(f"⚠️ Erreur formatage actions: {e}")
+    
+    def _add_events_statistics(self, writer, df_events: pd.DataFrame):
+        """
+        Ajoute un onglet avec les statistiques des événements
+        
+        Args:
+            writer: ExcelWriter
+            df_events: DataFrame des événements
+        """
+        try:
+            if df_events.empty:
+                return
+            
+            stats_data = []
+            
+            # Statistiques générales
+            stats_data.append(['=== STATISTIQUES GÉNÉRALES ===', ''])
+            stats_data.append(['Nombre total d\'événements', len(df_events)])
+            
+            # Par type d'action
+            if 'nom_action' in df_events.columns:
+                action_counts = df_events['nom_action'].value_counts()
+                stats_data.append(['', ''])
+                stats_data.append(['=== PAR TYPE D\'ACTION ===', ''])
+                for action, count in action_counts.items():
+                    stats_data.append([action, count])
+            
+            # Par type de cible
+            if 'type_cible' in df_events.columns:
+                target_counts = df_events['type_cible'].value_counts()
+                stats_data.append(['', ''])
+                stats_data.append(['=== PAR TYPE DE CIBLE ===', ''])
+                for target, count in target_counts.items():
+                    stats_data.append([target, count])
+            
+            # Par projet (top 10)
+            if 'id_projet' in df_events.columns:
+                project_counts = df_events['id_projet'].value_counts().head(10)
+                stats_data.append(['', ''])
+                stats_data.append(['=== TOP 10 PROJETS ACTIFS ===', ''])
+                for project, count in project_counts.items():
+                    stats_data.append([f'Projet {project}', count])
+            
+            # Par auteur (top 10)
+            if 'id_auteur' in df_events.columns:
+                author_counts = df_events['id_auteur'].value_counts().head(10)
+                stats_data.append(['', ''])
+                stats_data.append(['=== TOP 10 UTILISATEURS ACTIFS ===', ''])
+                for author, count in author_counts.items():
+                    stats_data.append([f'Utilisateur {author}', count])
+            
+            # Créer le DataFrame des statistiques
+            stats_df = pd.DataFrame(stats_data, columns=['Métrique', 'Valeur'])
+            
+            # Exporter vers un onglet séparé
+            stats_df.to_excel(writer, sheet_name='Statistiques', index=False)
+            
+            # Formater l'onglet statistiques
+            workbook = writer.book
+            stats_worksheet = workbook['Statistiques']
+            self._apply_header_style(stats_worksheet, 2)
+            self._auto_adjust_columns(stats_worksheet)
+            
+        except Exception as e:
+            print(f"⚠️ Erreur création statistiques: {e}")
+
+
+# Fonctions utilitaires publiques
     
     def export_projects(self, df_projects: pd.DataFrame, filename: str = "gitlab_projects.xlsx") -> str:
         """
@@ -266,6 +421,21 @@ def export_projects_to_excel(df_projects: pd.DataFrame, filename: str = "gitlab_
     """
     exporter = GitLabExcelExporter()
     return exporter.export_projects(df_projects, filename)
+
+
+def export_events_to_excel(df_events: pd.DataFrame, filename: str = "gitlab_events.xlsx") -> str:
+    """
+    Fonction utilitaire pour exporter les événements GitLab vers Excel
+    
+    Args:
+        df_events: DataFrame avec les données d'événements
+        filename: Nom du fichier
+        
+    Returns:
+        Chemin du fichier créé
+    """
+    exporter = GitLabExcelExporter()
+    return exporter.export_events(df_events, filename)
 
 
 if __name__ == "__main__":
