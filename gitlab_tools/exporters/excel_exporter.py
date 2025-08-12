@@ -479,6 +479,46 @@ class GitLabExcelExporter:
             print(f"❌ Erreur lors de l'export projets Excel: {e}")
             return ""
 
+    def export_groups(
+        self, df_groups: pd.DataFrame, filename: str = "gitlab_groups.xlsx"
+    ) -> str:
+        """
+        Exporte les groupes vers Excel
+
+        Args:
+            df_groups: DataFrame des groupes
+            filename: Nom du fichier
+
+        Returns:
+            Chemin complet du fichier créé
+        """
+        if df_groups.empty:
+            print("❌ Aucune donnée groupe à exporter")
+            return ""
+
+        try:
+            file_path = self.export_dir / filename
+            print(f"📁 Export groupes vers: {file_path}")
+
+            with pd.ExcelWriter(file_path, engine='openpyxl') as writer:
+                df_groups.to_excel(writer, sheet_name='Groupes GitLab', index=False)
+
+                # Formatage basique
+                worksheet = writer.sheets.get('Groupes GitLab')
+                if worksheet is not None:
+                    self._apply_header_style(worksheet, len(df_groups.columns))
+                    self._auto_adjust_columns(worksheet)
+                    worksheet.freeze_panes = "A2"
+
+            print(f"✅ Fichier groupes Excel créé: {file_path}")
+            print(f"📊 {len(df_groups)} groupes exportés")
+
+            return str(file_path)
+
+        except Exception as e:
+            print(f"❌ Erreur lors de l'export groupes Excel: {e}")
+            return ""
+
     def export_combined_report(self, df_users: pd.DataFrame, df_projects: pd.DataFrame,
                              stats: Dict[str, Any], filename: str = "gitlab_rapport_complet.xlsx") -> str:
         """
@@ -595,6 +635,21 @@ def export_events_to_excel(df_events: pd.DataFrame, filename: str = "gitlab_even
     """
     exporter = GitLabExcelExporter()
     return exporter.export_events(df_events, filename)
+
+
+def export_groups_to_excel(df_groups: pd.DataFrame, filename: str = "gitlab_groups.xlsx") -> str:
+    """
+    Fonction utilitaire pour exporter les groupes GitLab vers Excel
+
+    Args:
+        df_groups: DataFrame avec les données de groupes
+        filename: Nom du fichier
+
+    Returns:
+        Chemin du fichier créé
+    """
+    exporter = GitLabExcelExporter()
+    return exporter.export_groups(df_groups, filename)
 
 
 def _apply_basic_formatting(ws) -> None:

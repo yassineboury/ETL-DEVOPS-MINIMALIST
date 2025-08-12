@@ -9,6 +9,7 @@ from .pipelines_extractor import extract_pipelines, extract_pipelines_by_project
 from .projects_extractor import extract_projects
 from .users_extractor import extract_human_users
 from .commits_extractor import CommitsExtractor
+from .groups_extractor import GroupsExtractor
 
 __all__ = [
     # Extracteurs utilisateurs
@@ -28,5 +29,8 @@ __all__ = [
     'extract_pipelines_by_project',
     
     # Extracteur commits
-    'CommitsExtractor'
+    'CommitsExtractor',
+    
+    # Extracteur groupes
+    'GroupsExtractor'
 ]
