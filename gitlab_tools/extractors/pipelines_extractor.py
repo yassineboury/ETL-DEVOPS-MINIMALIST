@@ -1,6 +1,7 @@
 """
 Extracteur de pipelines GitLab
 Module pour extraire les informations des pipelines CI/CD selon les spécifications DevSecOps
+Includes batch processing for large-scale extractions (200+ projects).
 """
 import contextlib
 from datetime import datetime
@@ -8,6 +9,8 @@ from typing import Any, Dict, List, Optional
 
 import gitlab as python_gitlab
 import pandas as pd
+
+from ..utils.batch_processor import GitLabBatchProcessor
 
 
 def _format_date(date_string: Optional[str]) -> str:
@@ -268,7 +271,8 @@ def _process_project_pipelines(project, limit_per_project: int) -> List[Dict[str
 
 
 def extract_pipelines(gl_client: python_gitlab.Gitlab, project_ids: Optional[List[int]] = None,
-                     limit_per_project: int = 50) -> pd.DataFrame:
+                     limit_per_project: int = 50, batch_size: int = 10, 
+                     use_batch_processing: bool = True) -> pd.DataFrame:
     """
     Extrait les pipelines GitLab avec leurs métriques DevSecOps
 
@@ -276,23 +280,76 @@ def extract_pipelines(gl_client: python_gitlab.Gitlab, project_ids: Optional[Lis
         gl_client: Client GitLab authentifié
         project_ids: Liste des IDs de projets (optionnel, sinon tous les projets)
         limit_per_project: Limite de pipelines par projet (défaut: 50)
+        batch_size: Nombre de projets par batch (défaut: 10)
+        use_batch_processing: Utiliser le traitement par batch pour gros volumes
 
     Returns:
         DataFrame avec les informations des pipelines
     """
     print("🔄 Extraction des pipelines GitLab...")
 
+    # Récupérer les IDs des projets à traiter
+    if project_ids is None:
+        try:
+            projects = gl_client.projects.list(all=True, archived=False)
+            project_ids = [p.id for p in projects]
+        except Exception as e:
+            print(f"❌ Erreur récupération projets: {e}")
+            return pd.DataFrame()
+    
+    if not project_ids:
+        print("⚠️  Aucun projet à traiter")
+        return pd.DataFrame()
+    
+    print(f"📊 {len(project_ids)} projets à traiter")
+    
+    # Utiliser batch processing pour gros volumes
+    if use_batch_processing and len(project_ids) > 5:
+        return _extract_pipelines_batch(gl_client, project_ids, limit_per_project, batch_size)
+    else:
+        return _extract_pipelines_sequential(gl_client, project_ids, limit_per_project)
+
+
+def _extract_pipelines_batch(
+    gl_client: python_gitlab.Gitlab, 
+    project_ids: List[int], 
+    limit_per_project: int,
+    batch_size: int
+) -> pd.DataFrame:
+    """Extract pipelines using batch processing for optimal performance."""
+    
+    batch_processor = GitLabBatchProcessor(batch_size=batch_size)
+    
+    def process_project_batch(batch_project_ids: List[int]) -> pd.DataFrame:
+        """Process a batch of project IDs."""
+        return _extract_pipelines_sequential(gl_client, batch_project_ids, limit_per_project)
+    
+    return batch_processor.process_projects_batch(
+        project_ids=project_ids,
+        extractor_func=process_project_batch
+    )
+
+
+def _extract_pipelines_sequential(
+    gl_client: python_gitlab.Gitlab, 
+    project_ids: List[int], 
+    limit_per_project: int
+) -> pd.DataFrame:
+    """Extract pipelines sequentially (used by batch processor or small extractions)."""
+    
     pipelines_data = []
     processed_projects = 0
 
     try:
-        # Récupérer les projets à traiter
-        if project_ids:
-            projects = [gl_client.projects.get(pid) for pid in project_ids]
-        else:
-            projects = gl_client.projects.list(all=True, archived=False)
-
-        print(f"📊 {len(projects)} projets à traiter")
+        # Get projects by IDs
+        projects = []
+        for project_id in project_ids:
+            try:
+                project = gl_client.projects.get(project_id)
+                projects.append(project)
+            except Exception as e:
+                print(f"⚠️  Erreur accès projet {project_id}: {e}")
+                continue
 
         for project in projects:
             project_pipelines = _process_project_pipelines(project, limit_per_project)

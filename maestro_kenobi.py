@@ -22,9 +22,11 @@ from gitlab_tools.client.gitlab_client import create_gitlab_client
 from gitlab_tools.exporters.excel_exporter import (
     export_projects_to_excel,
     export_users_to_excel,
+    export_groups_to_excel,
 )
 from gitlab_tools.extractors.projects_extractor import extract_projects
 from gitlab_tools.extractors.users_extractor import extract_human_users
+from gitlab_tools.extractors.groups_extractor import GroupsExtractor
 
 
 class MaestroKenobiOrchestrator:
@@ -33,6 +35,9 @@ class MaestroKenobiOrchestrator:
     Dirige les 6 mouvements de l'export avec précision musicale et élégance
     """
 
+    # Messages constants
+    NO_GITLAB_CONNECTION = "❌ Pas de connexion GitLab active"
+
     def __init__(self):
         self.project_root = Path(__file__).parent
         self.exports_dir = self.project_root / "exports" / "gitlab"
@@ -40,7 +45,7 @@ class MaestroKenobiOrchestrator:
         self.gl = None
 
         # Configuration de la barre de progression
-        self.total_steps = 6
+        self.total_steps = 7  # Ajout de l'étape groupes
         self.current_step = 0
         self.main_progress = None
 
@@ -160,7 +165,7 @@ class MaestroKenobiOrchestrator:
 
         try:
             if not self.gl:
-                print("❌ Pas de connexion GitLab active")
+                print(self.NO_GITLAB_CONNECTION)
                 return False, 0
 
             # Extraire les utilisateurs humains
@@ -188,19 +193,67 @@ class MaestroKenobiOrchestrator:
             self._update_progress("Erreur extraction utilisateurs")
             return False, 0
 
-    def step_4_extract_projects(self) -> tuple[bool, int]:
+    def step_4_extract_groups(self) -> tuple[bool, int]:
         """
-        Étape 4: Extraction des projets GitLab
+        Étape 4: Extraction des groupes GitLab
 
         Returns:
-            tuple: (succès, nombre de projets)
+            tuple: (succès, nombre de groupes)
         """
-        print("\n📁 ÉTAPE 4: Extraction des projets GitLab")
+        print("\n👥 ÉTAPE 4: Extraction des groupes GitLab")
         print("-" * 50)
 
         try:
             if not self.gl:
-                print("❌ Pas de connexion GitLab active")
+                print(self.NO_GITLAB_CONNECTION)
+                return False, 0
+
+            # Créer l'extracteur de groupes
+            groups_extractor = GroupsExtractor(self.gl)
+            
+            # Extraire les groupes
+            groups_df = groups_extractor.extract()
+
+            if groups_df.empty:
+                print("❌ Aucun groupe trouvé")
+                return False, 0
+
+            groups_count = len(groups_df)
+            print(f"✅ {groups_count} groupes extraits")
+
+            # Statistiques rapides
+            if 'is_top_level' in groups_df.columns:
+                top_level_count = groups_df['is_top_level'].sum()
+                sub_groups_count = groups_count - top_level_count
+                print(f"📊 Groupes racine: {top_level_count}, Sous-groupes: {sub_groups_count}")
+
+            if 'total_members' in groups_df.columns:
+                total_members = groups_df['total_members'].sum()
+                print(f"👥 Total membres: {total_members}")
+
+            # Sauvegarder temporairement
+            self.groups_data = groups_df
+            self._update_progress(f"Extraction groupes ({groups_count})")
+            return True, groups_count
+
+        except Exception as e:
+            print(f"❌ Erreur lors de l'extraction des groupes: {e}")
+            self._update_progress("Erreur extraction groupes")
+            return False, 0
+
+    def step_5_extract_projects(self) -> tuple[bool, int]:
+        """
+        Étape 5: Extraction des projets GitLab
+
+        Returns:
+            tuple: (succès, nombre de projets)
+        """
+        print("\n📁 ÉTAPE 5: Extraction des projets GitLab")
+        print("-" * 50)
+
+        try:
+            if not self.gl:
+                print(self.NO_GITLAB_CONNECTION)
                 return False, 0
 
             # Extraire tous les projets (actifs + archivés)
@@ -232,25 +285,28 @@ class MaestroKenobiOrchestrator:
             self._update_progress("Erreur extraction projets")
             return False, 0
 
-    def step_5_export_to_excel(self) -> tuple[bool, list]:
+    def step_6_export_to_excel(self) -> tuple[bool, list]:
         """
-        Étape 5: Export vers Excel
+        Étape 6: Export des données vers Excel
 
         Returns:
             tuple: (succès, liste des fichiers créés)
         """
-        print("\n📊 ÉTAPE 5: Export vers Excel")
+        print("\n📊 ÉTAPE 6: Export vers fichiers Excel")
         print("-" * 50)
 
         try:
-            if not hasattr(self, 'users_data') or not hasattr(self, 'projects_data'):
-                print("❌ Données manquantes pour l'export")
+            required_data = ['users_data', 'projects_data', 'groups_data']
+            missing_data = [data for data in required_data if not hasattr(self, data)]
+            
+            if missing_data:
+                print(f"❌ Données manquantes pour l'export: {', '.join(missing_data)}")
                 return False, []
 
             created_files = []
 
             # Barre de progression pour l'export
-            export_tasks = ["utilisateurs", "projets"]
+            export_tasks = ["utilisateurs", "groupes", "projets"]
             with tqdm(
                 total=len(export_tasks),
                 desc="📁 Export Excel",
@@ -268,6 +324,18 @@ class MaestroKenobiOrchestrator:
                 if users_file:
                     created_files.append(users_file)
                     print(f"   ✅ Utilisateurs: {Path(users_file).name}")
+                pbar.update(1)
+
+                # Export des groupes  
+                print("👥 Export des groupes...")
+                pbar.set_description("📁 Export groupes")
+                groups_file = export_groups_to_excel(
+                    self.groups_data,
+                    filename="gitlab_groups.xlsx"
+                )
+                if groups_file:
+                    created_files.append(groups_file)
+                    print(f"   ✅ Groupes: {Path(groups_file).name}")
                 pbar.update(1)
                 time.sleep(0.2)
 
@@ -298,21 +366,22 @@ class MaestroKenobiOrchestrator:
             self._update_progress("Erreur export Excel")
             return False, []
 
-    def step_6_cleanup_and_summary(
-        self, users_count: int, projects_count: int, created_files: list
+    def step_7_cleanup_and_summary(
+        self, users_count: int, projects_count: int, groups_count: int, created_files: list
     ) -> bool:
         """
-        Étape 6: Nettoyage final et résumé
+        Étape 7: Nettoyage final et résumé
 
         Args:
             users_count: Nombre d'utilisateurs extraits
-            projects_count: Nombre de projets extraits
+            projects_count: Nombre de projets extraits  
+            groups_count: Nombre de groupes extraits
             created_files: Liste des fichiers créés
 
         Returns:
             bool: True si succès
         """
-        print("\n🧹 ÉTAPE 6: Nettoyage final et résumé")
+        print("\n🧹 ÉTAPE 7: Nettoyage final et résumé")
         print("-" * 50)
 
         try:
@@ -326,12 +395,18 @@ class MaestroKenobiOrchestrator:
                 delattr(self, 'users_data')
             if hasattr(self, 'projects_data'):
                 delattr(self, 'projects_data')
+            if hasattr(self, 'groups_data'):
+                delattr(self, 'groups_data')
 
             print("🗑️  Données temporaires nettoyées")
 
             # Résumé final
             print("\n" + "=" * 60)
             print("🎉 EXPORT GITLAB TERMINÉ AVEC SUCCÈS!")
+            print("=" * 60)
+            print(f"👥 Utilisateurs extraits: {users_count}")
+            print(f"👥 Groupes extraits: {groups_count}")
+            print(f"📁 Projets extraits: {projects_count}")
             print("=" * 60)
             print(f"👥 Utilisateurs extraits: {users_count}")
             print(f"📁 Projets extraits: {projects_count}")
@@ -391,18 +466,23 @@ class MaestroKenobiOrchestrator:
                 if not users_success:
                     return False
 
-                # Étape 4: Extraction projets
-                projects_success, projects_count = self.step_4_extract_projects()
+                # Étape 4: Extraction groupes
+                groups_success, groups_count = self.step_4_extract_groups()
+                if not groups_success:
+                    return False
+
+                # Étape 5: Extraction projets
+                projects_success, projects_count = self.step_5_extract_projects()
                 if not projects_success:
                     return False
 
-                # Étape 5: Export Excel
-                export_success, created_files = self.step_5_export_to_excel()
+                # Étape 6: Export Excel
+                export_success, created_files = self.step_6_export_to_excel()
                 if not export_success:
                     return False
 
-                # Étape 6: Nettoyage et résumé
-                if not self.step_6_cleanup_and_summary(users_count, projects_count, created_files):
+                # Étape 7: Nettoyage et résumé
+                if not self.step_7_cleanup_and_summary(users_count, projects_count, groups_count, created_files):
                     return False
 
                 # Finaliser la barre de progression

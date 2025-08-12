@@ -3,6 +3,7 @@ GitLab Commits Extractor
 
 Extracts comprehensive commit data from GitLab projects with DevSecOps analytics.
 Features dual approach: Git native data + GitLab user mapping.
+Includes batch processing for large-scale extractions (200+ projects).
 
 Author: DevSecOps Team
 Date: 2025-08-12
@@ -12,19 +13,19 @@ import logging
 import re
 from contextlib import suppress
 from datetime import datetime
+from pathlib import Path
 from typing import Dict, List, Optional, Any, Tuple
 import pandas as pd
 import gitlab
 from gitlab.v4.objects import Project, ProjectCommit
 
+from ..base_extractor import BaseExtractor
+from ..config import FILE_TYPES, CHANGE_MAGNITUDE_THRESHOLDS
+from ..exceptions import GitLabExtractionError, handle_gitlab_api_error
 
-class CommitsExtractor:
+
+class CommitsExtractor(BaseExtractor):
     """Extract commits with comprehensive DevSecOps metrics and statistics."""
-    
-    # File type patterns for analysis
-    CODE_EXTENSIONS = {'.py', '.js', '.ts', '.java', '.cpp', '.c', '.cs', '.php', '.rb', '.go', '.rs', '.kt', '.swift'}
-    CONFIG_EXTENSIONS = {'.yml', '.yaml', '.json', '.xml', '.toml', '.ini', '.conf', '.cfg', '.env'}
-    DOC_EXTENSIONS = {'.md', '.rst', '.txt', '.doc', '.docx', '.pdf', '.adoc'}
     
     # Commit message patterns
     PATTERNS = {
@@ -34,26 +35,68 @@ class CommitsExtractor:
         'documentation': re.compile(r'\b(doc|docs|documentation|readme)\b', re.IGNORECASE)
     }
     
-    # Change magnitude thresholds
-    MAGNITUDE_THRESHOLDS = {
-        'Small': 50,
-        'Medium': 200,
-        'Large': 500
-    }
-    
-    def __init__(self, gitlab_client: gitlab.Gitlab):
-        """Initialize commits extractor with GitLab client."""
-        self.gitlab_client = gitlab_client
-        self.logger = logging.getLogger(__name__)
+    def __init__(self, gitlab_client: gitlab.Gitlab, batch_size: int = 10, enable_cache: bool = True, cache_days: int = 7):
+        """
+        Initialize commits extractor with GitLab client and batch processing.
+        
+        Args:
+            gitlab_client: GitLab API client instance
+            batch_size: Number of projects to process per batch
+            enable_cache: Enable file-based caching for weekly extractions
+            cache_days: Cache expiration in days
+        """
+        super().__init__(gitlab_client, batch_size, enable_cache, cache_days)
+        
+        # User cache for email to GitLab user mapping
         self._user_cache: Dict[str, Optional[Dict[str, Any]]] = {}
     
-    def extract_commits(
+    def extract(self, **kwargs) -> pd.DataFrame:
+        """
+        Extract commits from GitLab projects with comprehensive statistics.
+        
+        Args:
+            project_ids: List of project IDs to process (None = all accessible)
+            branch_name: Branch to analyze (None = default branch)
+            since: Start date for commits (ISO format)
+            until: End date for commits (ISO format)
+            max_commits: Maximum commits per project
+            use_batch_processing: Enable batch processing for large extractions
+            
+        Returns:
+            DataFrame with commit data and statistics
+        """
+        self._start_extraction()
+        
+        try:
+            # Extract parameters with defaults
+            project_ids = kwargs.get('project_ids', None)
+            branch_name = kwargs.get('branch_name', None)
+            since = kwargs.get('since', None)
+            until = kwargs.get('until', None)
+            max_commits = kwargs.get('max_commits', 1000)
+            use_batch_processing = kwargs.get('use_batch_processing', True)
+            
+            result = self._extract_commits_internal(
+                project_ids, branch_name, since, until, max_commits, use_batch_processing
+            )
+            self._end_extraction()
+            return result
+        except Exception as e:
+            self._end_extraction()
+            raise handle_gitlab_api_error(e) from e
+    
+    def extract_commits(self, **kwargs) -> pd.DataFrame:
+        """Backwards compatibility method."""
+        return self.extract(**kwargs)
+        
+    def _extract_commits_internal(
         self, 
         project_ids: Optional[List[int]] = None,
         branch_name: Optional[str] = None,
         since: Optional[str] = None,
         until: Optional[str] = None,
-        max_commits: int = 1000
+        max_commits: int = 1000,
+        use_batch_processing: bool = True
     ) -> pd.DataFrame:
         """
         Extract commits from GitLab projects with comprehensive statistics.
@@ -64,23 +107,118 @@ class CommitsExtractor:
             since: Start date in ISO format (YYYY-MM-DDTHH:MM:SSZ)
             until: End date in ISO format (YYYY-MM-DDTHH:MM:SSZ)
             max_commits: Maximum commits per project
+            use_batch_processing: Enable batch processing for large extractions
             
         Returns:
             DataFrame with commit data and statistics
         """
-        self.logger.info("Starting commits extraction with DevSecOps analytics")
+        self.logger.info(f"Starting commits extraction with DevSecOps analytics (batch: {use_batch_processing})")
         
         if project_ids is None:
             projects = self._get_accessible_projects()
-        else:
-            projects = [self._get_project_safely(pid) for pid in project_ids]
-            projects = [p for p in projects if p is not None]
+            project_ids = [p.id for p in projects] if projects else []
         
-        if not projects:
+        if not project_ids:
             self.logger.warning("No accessible projects found")
             return self._create_empty_dataframe()
         
+        self.logger.info(f"Processing {len(project_ids)} projects")
+        self._stats['total_projects'] = len(project_ids)
+        
+        # Use batch processing for large extractions
+        if use_batch_processing and len(project_ids) > 5:
+            return self._extract_commits_batch(project_ids, branch_name, since, until, max_commits)
+        else:
+            return self._extract_commits_sequential(project_ids, branch_name, since, until, max_commits)
+    
+    def _extract_commits_batch(
+        self, 
+        project_ids: List[int], 
+        branch_name: Optional[str], 
+        since: Optional[str], 
+        until: Optional[str], 
+        max_commits: int
+    ) -> pd.DataFrame:
+        """Extract commits using batch processing with caching for optimal performance."""
+        
+        if self.cache_manager:
+            return self._extract_commits_batch_with_cache(project_ids, branch_name, since, until, max_commits)
+        else:
+            return self._extract_commits_batch_without_cache(project_ids, branch_name, since, until, max_commits)
+
+    def _extract_commits_batch_with_cache(
+        self, 
+        project_ids: List[int], 
+        branch_name: Optional[str], 
+        since: Optional[str], 
+        until: Optional[str], 
+        max_commits: int
+    ) -> pd.DataFrame:
+        """Extract commits with caching support."""
+        if not self.cache_manager:
+            return self._extract_commits_batch_without_cache(project_ids, branch_name, since, until, max_commits)
+            
+        cached_results = []
+        uncached_project_ids = []
+        
+        # Check cache for each project
+        for project_id in project_ids:
+            cached_data = self.cache_manager.cache.get_cached_commits(project_id)
+            if cached_data is not None:
+                cached_results.append(cached_data)
+                self.logger.debug(f"Using cached commits for project {project_id}")
+            else:
+                uncached_project_ids.append(project_id)
+        
+        # Process uncached projects
+        if uncached_project_ids:
+            fresh_data = self._extract_commits_batch_without_cache(uncached_project_ids, branch_name, since, until, max_commits)
+            
+            # Cache fresh results by project
+            for project_id in uncached_project_ids:
+                project_commits = fresh_data[fresh_data['project_id'] == project_id]
+                if not project_commits.empty:
+                    self.cache_manager.cache.cache_commits(project_id, project_commits)
+            
+            # Combine results
+            all_dataframes = cached_results + ([fresh_data] if not fresh_data.empty else [])
+        else:
+            all_dataframes = cached_results
+        
+        return pd.concat(all_dataframes, ignore_index=True) if all_dataframes else self._create_empty_dataframe()
+
+    def _extract_commits_batch_without_cache(
+        self, 
+        project_ids: List[int], 
+        branch_name: Optional[str], 
+        since: Optional[str], 
+        until: Optional[str], 
+        max_commits: int
+    ) -> pd.DataFrame:
+        """Extract commits using standard batch processing."""
+        def process_project_batch(batch_project_ids: List[int]) -> pd.DataFrame:
+            return self._extract_commits_sequential(batch_project_ids, branch_name, since, until, max_commits)
+        
+        return self.batch_processor.process_projects_batch(
+            project_ids=project_ids,
+            extractor_func=process_project_batch
+        )
+    
+    def _extract_commits_sequential(
+        self, 
+        project_ids: List[int], 
+        branch_name: Optional[str], 
+        since: Optional[str], 
+        until: Optional[str], 
+        max_commits: int
+    ) -> pd.DataFrame:
+        """Extract commits sequentially (used by batch processor or small extractions)."""
+        
         all_commits_data = []
+        
+        # Get project objects from IDs
+        projects = [self._get_project_safely(pid) for pid in project_ids]
+        projects = [p for p in projects if p is not None]
         
         for project in projects:
             try:
@@ -288,11 +426,11 @@ class CommitsExtractor:
         file_extension = self._get_file_extension(file_path)
         file_name = file_path.lower()
         
-        if file_extension in self.CODE_EXTENSIONS:
+        if file_extension in FILE_TYPES['code']:
             files_data['code_files_changed'] += 1
-        elif file_extension in self.CONFIG_EXTENSIONS:
+        elif file_extension in FILE_TYPES['config']:
             files_data['config_files_changed'] += 1
-        elif file_extension in self.DOC_EXTENSIONS:
+        elif file_extension in FILE_TYPES['docs']:
             files_data['doc_files_changed'] += 1
         elif 'test' in file_name or 'spec' in file_name:
             files_data['test_files_changed'] += 1
@@ -310,11 +448,11 @@ class CommitsExtractor:
     
     def _calculate_change_magnitude(self, total_changes: int) -> str:
         """Calculate change magnitude category."""
-        if total_changes <= self.MAGNITUDE_THRESHOLDS['Small']:
+        if total_changes <= CHANGE_MAGNITUDE_THRESHOLDS['Small']:
             return 'Small'
-        elif total_changes <= self.MAGNITUDE_THRESHOLDS['Medium']:
+        elif total_changes <= CHANGE_MAGNITUDE_THRESHOLDS['Medium']:
             return 'Medium'
-        elif total_changes <= self.MAGNITUDE_THRESHOLDS['Large']:
+        elif total_changes <= CHANGE_MAGNITUDE_THRESHOLDS['Large']:
             return 'Large'
         else:
             return 'XLarge'
@@ -325,7 +463,7 @@ class CommitsExtractor:
             return self._user_cache[email]
         
         try:
-            users = self.gitlab_client.users.list(search=email, per_page=1)
+            users = self.gitlab.users.list(search=email, per_page=1)
             if users and users[0].email.lower() == email.lower():
                 user_data = {
                     'id': users[0].id,
@@ -341,14 +479,11 @@ class CommitsExtractor:
         self._user_cache[email] = None
         return None
     
-    def _get_accessible_projects(self) -> List[Project]:
+    def _get_accessible_projects(self, project_ids: Optional[List[int]] = None) -> List[Project]:
         """Get list of accessible projects."""
         try:
-            return self.gitlab_client.projects.list(
-                membership=True,
-                per_page=100,
-                order_by='last_activity_at'
-            )
+            # Use parent class method for consistency
+            return super()._get_accessible_projects(project_ids)
         except Exception as e:
             self.logger.error(f"Error fetching accessible projects: {e}")
             return []
@@ -356,7 +491,7 @@ class CommitsExtractor:
     def _get_project_safely(self, project_id: int) -> Optional[Project]:
         """Get project by ID with error handling."""
         with suppress(Exception):
-            return self.gitlab_client.projects.get(project_id, lazy=False)
+            return self.gitlab.projects.get(project_id, lazy=False)
         return None
     
     def _get_file_extension(self, file_path: str) -> str:
