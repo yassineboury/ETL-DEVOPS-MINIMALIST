@@ -1,13 +1,8 @@
 #!/usr/bin/env python3
 """
-<<<<<<<< HEAD:kenobi_maestro.py
-KENOBI MAESTRO - Orchestrateur d'export GitLab KENOBI DEVOPS
-Chef d'orchestre pour gérer les exports GitLab selon un processus clair et par étapes
-========
-🎯 MAESTRO KENOBI - ETL DevSecOps Orchestrator
-Le maître orchestrateur pour les exports GitLab et DevSecOps
-Gère les exports selon un processus clair et par étapes avec style !
->>>>>>>> 94bf882fd747fe58626033a054dc30991534a683:maestro_kenobi.py
+� KENOBI MAESTRO - Orchestrateur GitLab Symphonique
+Le maître chef d'orchestre pour les exports GitLab et DevSecOps
+Dirige les mouvements d'extraction avec précision musicale et élégance !
 """
 
 import contextlib
@@ -32,17 +27,10 @@ from gitlab_tools.extractors.projects_extractor import extract_projects
 from gitlab_tools.extractors.users_extractor import extract_human_users
 
 
-<<<<<<<< HEAD:kenobi_maestro.py
-class KenobiMaestro:
-    """
-    KENOBI MAESTRO - Chef d'orchestre pour gérer les exports GitLab de manière structurée
-    Dirige les 6 mouvements de l'export avec précision et élégance
-========
 class MaestroKenobiOrchestrator:
     """
-    🎭 MAESTRO KENOBI - Le maître orchestrateur GitLab
-    Gère les exports GitLab avec élégance et puissance
->>>>>>>> 94bf882fd747fe58626033a054dc30991534a683:maestro_kenobi.py
+    � KENOBI MAESTRO - Chef d'orchestre symphonique GitLab
+    Dirige les 6 mouvements de l'export avec précision musicale et élégance
     """
 
     def __init__(self):
@@ -70,17 +58,12 @@ class MaestroKenobiOrchestrator:
 
     def step_1_cleanup_old_files(self) -> bool:
         """
-<<<<<<<< HEAD:kenobi_maestro.py
-        🎼 PREMIER MOUVEMENT: Nettoyage de la scène avant le spectacle
-        
-========
         Étape 1: Supprimer les anciens fichiers du dossier exports/gitlab
 
->>>>>>>> 94bf882fd747fe58626033a054dc30991534a683:maestro_kenobi.py
         Returns:
             bool: True si succès, False sinon
         """
-        print("🧹 PREMIER MOUVEMENT: Nettoyage de la scène")
+        print("🧹 ÉTAPE 1: Nettoyage des anciens fichiers d'export")
         print("-" * 50)
 
         try:
@@ -132,17 +115,12 @@ class MaestroKenobiOrchestrator:
 
     def step_2_connect_gitlab(self) -> bool:
         """
-<<<<<<<< HEAD:kenobi_maestro.py
-        🎼 DEUXIÈME MOUVEMENT: Accordage avec GitLab ONCF
-        
-========
         Étape 2: Connexion à GitLab ONCF
 
->>>>>>>> 94bf882fd747fe58626033a054dc30991534a683:maestro_kenobi.py
         Returns:
             bool: True si succès, False sinon
         """
-        print("\n🔗 DEUXIÈME MOUVEMENT: Accordage avec GitLab ONCF")
+        print("\n🔗 ÉTAPE 2: Connexion à GitLab ONCF")
         print("-" * 50)
 
         try:
@@ -172,17 +150,12 @@ class MaestroKenobiOrchestrator:
 
     def step_3_extract_users(self) -> tuple[bool, int]:
         """
-<<<<<<<< HEAD:kenobi_maestro.py
-        🎼 TROISIÈME MOUVEMENT: Mélodie des utilisateurs GitLab
-        
-========
         Étape 3: Extraction des utilisateurs GitLab
 
->>>>>>>> 94bf882fd747fe58626033a054dc30991534a683:maestro_kenobi.py
         Returns:
             tuple: (succès, nombre d'utilisateurs)
         """
-        print("\n👥 TROISIÈME MOUVEMENT: Mélodie des utilisateurs GitLab")
+        print("\n👥 ÉTAPE 3: Extraction des utilisateurs GitLab")
         print("-" * 50)
 
         try:
@@ -217,17 +190,12 @@ class MaestroKenobiOrchestrator:
 
     def step_4_extract_projects(self) -> tuple[bool, int]:
         """
-<<<<<<<< HEAD:kenobi_maestro.py
-        🎼 QUATRIÈME MOUVEMENT: Symphonie des projets GitLab
-        
-========
         Étape 4: Extraction des projets GitLab
 
->>>>>>>> 94bf882fd747fe58626033a054dc30991534a683:maestro_kenobi.py
         Returns:
             tuple: (succès, nombre de projets)
         """
-        print("\n📁 QUATRIÈME MOUVEMENT: Symphonie des projets GitLab")
+        print("\n📁 ÉTAPE 4: Extraction des projets GitLab")
         print("-" * 50)
 
         try:
@@ -266,17 +234,12 @@ class MaestroKenobiOrchestrator:
 
     def step_5_export_to_excel(self) -> tuple[bool, list]:
         """
-<<<<<<<< HEAD:kenobi_maestro.py
-        🎼 CINQUIÈME MOUVEMENT: Composition des partitions Excel
-        
-========
         Étape 5: Export vers Excel
 
->>>>>>>> 94bf882fd747fe58626033a054dc30991534a683:maestro_kenobi.py
         Returns:
             tuple: (succès, liste des fichiers créés)
         """
-        print("\n📊 CINQUIÈME MOUVEMENT: Composition des partitions Excel")
+        print("\n📊 ÉTAPE 5: Export vers Excel")
         print("-" * 50)
 
         try:
@@ -339,13 +302,8 @@ class MaestroKenobiOrchestrator:
         self, users_count: int, projects_count: int, created_files: list
     ) -> bool:
         """
-<<<<<<<< HEAD:kenobi_maestro.py
-        🎼 SIXIÈME MOUVEMENT: Final en apothéose et saluts
-        
-========
         Étape 6: Nettoyage final et résumé
 
->>>>>>>> 94bf882fd747fe58626033a054dc30991534a683:maestro_kenobi.py
         Args:
             users_count: Nombre d'utilisateurs extraits
             projects_count: Nombre de projets extraits
@@ -354,7 +312,7 @@ class MaestroKenobiOrchestrator:
         Returns:
             bool: True si succès
         """
-        print("\n🧹 SIXIÈME MOUVEMENT: Final en apothéose et saluts")
+        print("\n🧹 ÉTAPE 6: Nettoyage final et résumé")
         print("-" * 50)
 
         try:
@@ -373,37 +331,23 @@ class MaestroKenobiOrchestrator:
 
             # Résumé final
             print("\n" + "=" * 60)
-            print("🎉 SYMPHONIE GITLAB TERMINÉE AVEC BRIO!")
+            print("🎉 EXPORT GITLAB TERMINÉ AVEC SUCCÈS!")
             print("=" * 60)
             print(f"👥 Utilisateurs extraits: {users_count}")
             print(f"📁 Projets extraits: {projects_count}")
-<<<<<<<< HEAD:kenobi_maestro.py
-            print(f"📊 Partitions Excel créées: {len(created_files)}")
-            
-========
             print(f"📊 Fichiers Excel créés: {len(created_files)}")
 
->>>>>>>> 94bf882fd747fe58626033a054dc30991534a683:maestro_kenobi.py
             if created_files:
-                print("\n🎼 Œuvres créées:")
+                print("\n📁 Fichiers générés:")
                 for file_path in created_files:
                     file_size = Path(file_path).stat().st_size / 1024  # KB
                     print(f"   ✅ {Path(file_path).name} ({file_size:.1f} KB)")
-<<<<<<<< HEAD:kenobi_maestro.py
-                
-                print(f"\n📂 Conservatoire: {self.exports_dir}")
-            
-            print(f"\n🎭 Rideau tombé le: {datetime.now().strftime('%d/%m/%Y à %H:%M:%S')}")
-            
-            self._update_progress("🎉 Symphonie terminée")
-========
 
                 print(f"\n📂 Dossier: {self.exports_dir}")
 
             print(f"\n⏰ Export terminé le: {datetime.now().strftime('%d/%m/%Y à %H:%M:%S')}")
 
             self._update_progress("Nettoyage et résumé terminés")
->>>>>>>> 94bf882fd747fe58626033a054dc30991534a683:maestro_kenobi.py
             return True
 
         except Exception as e:
@@ -418,17 +362,12 @@ class MaestroKenobiOrchestrator:
         Returns:
             bool: True si tout s'est bien passé
         """
-        print("🎭 KENOBI MAESTRO - CHEF D'ORCHESTRE GITLAB")
+        print("🚀 KENOBI DEVOPS - ORCHESTRATEUR D'EXPORT GITLAB")
         print("=" * 60)
-        print(f"🎼 Début de la symphonie le: {datetime.now().strftime('%d/%m/%Y à %H:%M:%S')}")
+        print(f"📅 Démarrage le: {datetime.now().strftime('%d/%m/%Y à %H:%M:%S')}")
         print("=" * 60)
 
         # Initialiser la barre de progression principale
-<<<<<<<< HEAD:kenobi_maestro.py
-        with tqdm(total=self.total_steps, desc="🎼 Mouvements symphoniques", unit="mouvement", 
-                 bar_format="{desc}: {percentage:3.0f}%|{bar}| {n_fmt}/{total_fmt} mouvements [{elapsed}<{remaining}]") as progress:
-            
-========
         with tqdm(
             total=self.total_steps,
             desc="🔄 Étapes d'export",
@@ -436,7 +375,6 @@ class MaestroKenobiOrchestrator:
             bar_format="{desc}: {percentage:3.0f}%|{bar}| {n_fmt}/{total_fmt} étapes [{elapsed}<{remaining}]"
         ) as progress:
 
->>>>>>>> 94bf882fd747fe58626033a054dc30991534a683:maestro_kenobi.py
             self.main_progress = progress
 
             try:
@@ -468,14 +406,14 @@ class MaestroKenobiOrchestrator:
                     return False
 
                 # Finaliser la barre de progression
-                progress.set_description("� Symphonie terminée")
+                progress.set_description("🎉 Export terminé")
                 progress.refresh()
 
                 return True
 
             except Exception as e:
-                print(f"\n❌ DISSONANCE CRITIQUE: {e}")
-                progress.set_description("❌ Fausse note critique")
+                print(f"\n❌ ERREUR CRITIQUE: {e}")
+                progress.set_description("❌ Erreur critique")
                 # Nettoyage d'urgence
                 if self.gitlab_client:
                     with contextlib.suppress(Exception):
@@ -486,14 +424,6 @@ class MaestroKenobiOrchestrator:
 
 
 def main():
-<<<<<<<< HEAD:kenobi_maestro.py
-    """Point d'entrée principal - Le chef prend sa baguette"""
-    maestro = KenobiMaestro()
-    
-    # Lancer la symphonie complète
-    success = maestro.run_full_export()
-    
-========
     """🚀 Point d'entrée principal - MAESTRO KENOBI en action !"""
     print("🎭 MAESTRO KENOBI - Orchestrateur DevSecOps")
     print("=" * 50)
@@ -503,7 +433,6 @@ def main():
     # Lancer l'export complet
     success = orchestrator.run_full_export()
 
->>>>>>>> 94bf882fd747fe58626033a054dc30991534a683:maestro_kenobi.py
     return success
 
 
