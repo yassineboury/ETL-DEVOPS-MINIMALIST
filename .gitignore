@@ -6,6 +6,11 @@ __pycache__/
 *$py.class
 *.so
 .Python
+
+# Cache et fichiers temporaires
+.ruff_cache/
+.mypy_cache/
+.pytest_cache/
 build/
 develop-eggs/
 dist/
