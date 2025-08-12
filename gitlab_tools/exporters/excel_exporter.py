@@ -162,7 +162,7 @@ class GitLabExcelExporter:
 
     def export_events(self, df_events: pd.DataFrame, filename: str = "gitlab_events.xlsx") -> str:
         """
-        Exporte les événements vers Excel avec formatage
+        Exporte les événements vers Excel - VERSION ULTRA SIMPLE pour Power BI
 
         Args:
             df_events: DataFrame avec les données d'événements
@@ -174,27 +174,15 @@ class GitLabExcelExporter:
         try:
             file_path = self.export_dir / filename
 
+            # Export direct sans limitation et sans formatage complexe
             with pd.ExcelWriter(file_path, engine='openpyxl') as writer:
-                # Export des données
+                # UNE SEULE FEUILLE : Données brutes pour Power BI
                 df_events.to_excel(writer, sheet_name='Événements', index=False)
 
-                # Récupérer la feuille pour le formatage
+                # Formatage minimal : juste figer la première ligne
                 workbook = writer.book
                 worksheet = workbook['Événements']
-
-                # Appliquer le style aux en-têtes
-                self._apply_header_style(worksheet, len(df_events.columns))
-
-                # Auto-ajustement des colonnes
-                self._auto_adjust_columns(worksheet)
-
-                # Formatage conditionnel pour les types d'événements
-                if not df_events.empty:
-                    # Colorer les différents types d'actions
-                    self._format_event_actions(worksheet, df_events)
-
-                # Ajouter des statistiques dans un onglet séparé
-                self._add_events_statistics(writer, df_events)
+                worksheet.freeze_panes = "A2"
 
             print(f"✅ Export événements réussi: {file_path}")
             return str(file_path)
@@ -247,13 +235,14 @@ class GitLabExcelExporter:
         except Exception as e:
             print(f"⚠️ Erreur formatage actions: {e}")
 
-    def _add_events_statistics(self, writer, df_events: pd.DataFrame):
+    def _add_events_statistics(self, writer, df_events: pd.DataFrame, original_count: int | None = None):
         """
         Ajoute un onglet avec les statistiques des événements
 
         Args:
             writer: ExcelWriter
             df_events: DataFrame des événements
+            original_count: Nombre original d'événements avant limitation (optionnel)
         """
         try:
             if df_events.empty:
@@ -263,7 +252,12 @@ class GitLabExcelExporter:
 
             # Statistiques générales
             stats_data.append(['=== STATISTIQUES GÉNÉRALES ===', ''])
-            stats_data.append(['Nombre total d\'événements', len(df_events)])
+            if original_count and original_count != len(df_events):
+                stats_data.append(['Nombre total d\'événements (original)', original_count])
+                stats_data.append(['Nombre d\'événements dans ce fichier', len(df_events)])
+                stats_data.append(['Note', f'Limité aux {len(df_events)} plus récents pour optimiser Excel'])
+            else:
+                stats_data.append(['Nombre total d\'événements', len(df_events)])
 
             # Par type d'action
             if 'nom_action' in df_events.columns:

@@ -111,28 +111,25 @@ def _extract_namespace_info(project) -> tuple[str, str]:
     Returns:
         Tuple (nom_namespace, type_namespace)
     """
-    namespace = getattr(project, 'namespace', {})
-    namespace_name = (
-        namespace.get('name', 'N/A') if isinstance(namespace, dict) else str(namespace)
-    )
-    namespace_kind = (
-        namespace.get('kind', 'user') if isinstance(namespace, dict) else 'user'
-    )
-    return namespace_name, namespace_kind
-
-
-def _extract_owner_info(project) -> str:
-    """
-    Extrait les informations du propriétaire
-
-    Args:
-        project: Objet projet GitLab
-
-    Returns:
-        Nom du propriétaire
-    """
-    owner = getattr(project, 'owner', {})
-    return owner.get('name', 'N/A') if isinstance(owner, dict) else 'N/A'
+    try:
+        namespace = getattr(project, 'namespace', {})
+        
+        if isinstance(namespace, dict):
+            namespace_name = namespace.get('name', namespace.get('path', 'N/A'))
+            namespace_kind = namespace.get('kind', 'user')
+            return namespace_name, namespace_kind
+        else:
+            # Fallback: utiliser path_with_namespace pour extraire le namespace
+            path_with_namespace = getattr(project, 'path_with_namespace', '')
+            if '/' in path_with_namespace:
+                namespace_name = path_with_namespace.split('/')[0]
+                namespace_kind = 'user'
+                return namespace_name, namespace_kind
+                
+        return 'N/A', 'user'
+        
+    except Exception:
+        return 'N/A', 'user'
 
 
 def _extract_last_commit_date(project) -> str:
@@ -155,6 +152,32 @@ def _extract_last_commit_date(project) -> str:
     return "N/A"
 
 
+def _get_dominant_language(project) -> str:
+    """
+    Récupère le langage principal du projet depuis l'API GitLab
+    
+    Args:
+        project: Objet projet GitLab
+        
+    Returns:
+        Nom du langage principal ou "N/A" si indisponible
+    """
+    try:
+        # Essayer de récupérer les langages du projet
+        languages = project.languages()
+        
+        if languages:
+            # Trouver le langage avec le plus haut pourcentage
+            dominant_language = max(languages.items(), key=lambda x: x[1])
+            return dominant_language[0]
+            
+    except Exception as e:
+        # En cas d'erreur d'API ou d'accès, ignorer silencieusement
+        pass
+        
+    return "N/A"
+
+
 def _build_project_info(project) -> Dict[str, Any]:
     """
     Construit les informations du projet
@@ -166,7 +189,6 @@ def _build_project_info(project) -> Dict[str, Any]:
         Dictionnaire avec les informations du projet
     """
     namespace_name, namespace_kind = _extract_namespace_info(project)
-    owner_name = _extract_owner_info(project)
     last_activity = getattr(project, 'last_activity_at', None)
     last_commit_date = _extract_last_commit_date(project)
     is_archived = getattr(project, 'archived', False)
@@ -178,11 +200,10 @@ def _build_project_info(project) -> Dict[str, Any]:
         'url_web': getattr(project, 'web_url', 'N/A'),
         'namespace': namespace_name,
         'type_namespace': _translate_namespace_kind(namespace_kind),
-        'proprietaire': owner_name,
         'date_creation': _format_date(getattr(project, 'created_at', None)),
         'derniere_activite': _format_date(last_activity),
         'dernier_commit': last_commit_date,
-        'langage_principal': "N/A",
+        'langage_principal': _get_dominant_language(project),
         'etat': _determine_project_state(project),
         'archivé': "Oui" if is_archived else "Non",
         'vide': _is_empty_project(project),

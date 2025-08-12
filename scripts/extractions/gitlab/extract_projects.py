@@ -1,7 +1,8 @@
 #!/usr/bin/env python3
 """
-📁 EXTRACTION PROJETS GITLAB SEULEMENT
-Script simple pour extraire uniquement les projets GitLab vers Excel
+📁 EXTRACTION PROJETS GITLAB ACTIFS SEULEMENT
+Script simple pour extraire uniquement les projets actifs GitLab vers Excel
+(Exclut les projets archivés)
 """
 
 import sys
@@ -43,8 +44,8 @@ def extract_projects_to_excel():
         print("✅ Connexion GitLab établie")
         
         # 3. Extraction des projets
-        print("📁 Extraction des projets (actifs + archivés)...")
-        projects_df = extract_projects(gl, include_archived=True)
+        print("📁 Extraction des projets actifs seulement...")
+        projects_df = extract_projects(gl, include_archived=False)
         
         if projects_df.empty:
             print("❌ Aucun projet trouvé")

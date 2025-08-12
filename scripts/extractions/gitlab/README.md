@@ -7,7 +7,7 @@ Ce dossier contient des scripts spécialisés pour effectuer des extractions ind
 ```
 scripts/extractions/
 ├── extract_users.py      # 👥 Extraction des utilisateurs uniquement
-├── extract_projects.py   # 📁 Extraction des projets uniquement  
+├── extract_projects.py   # 📁 Extraction des projets actifs uniquement (sans archivés)  
 ├── extract_groups.py     # 👥 Extraction des groupes uniquement
 └── README.md            # 📖 Documentation
 ```
