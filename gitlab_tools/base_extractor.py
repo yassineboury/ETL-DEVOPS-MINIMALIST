@@ -145,7 +145,7 @@ class BaseExtractor(ABC):
                         project = self.gitlab.projects.get(project_id, lazy=False)
                         projects.append(project)
                     except Exception as e:
-                        error = handle_gitlab_api_error(e, project_id)
+                        error = handle_gitlab_api_error(e)
                         self.logger.warning(f"Projet {project_id} non accessible: {error}")
                 return projects
             else:

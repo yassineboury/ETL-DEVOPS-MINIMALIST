@@ -2,37 +2,7 @@
 """
 Export GitLab Commits to Excel
 
-Script to        print("📊 Starting GitLab Commits Extraction with DevSecOps Analytics")
-        print("=" * 65)
-        
-        # Create commits extractor with unified architecture
-        print("🏗️ Architecture Phase 2: Interface commune et configuration centralisée")
-        extractor = CommitsExtractor(gitlab, batch_size=10, enable_cache=True, cache_days=7)
-        
-        print("🎯 Optimized for 200+ projects with:")
-        print("  • Interface BaseExtractor commune")
-        print("  • Configuration centralisée simple")
-        print("  • Exceptions standardisées")
-        print("  • Git author/committer information")
-        print("  • GitLab user mapping via email")
-        print("  • Change statistics (additions, deletions, files)")
-        print("  • File type analysis (code, config, docs, tests)")
-        print("  • Commit pattern detection (hotfix, feature, refactor)")
-        print("  • Change magnitude and complexity scoring")
-        print("  • Memory-efficient batch processing")
-        print("  • Progress tracking and error resilience")
-        print("  • File-based caching for weekly extractions")
-        
-        # Display cache status and extractor stats
-        if extractor.cache_manager:
-            print(f"\n💾 Cache Status:")
-            print(extractor.cache_manager.get_cache_health_report())
-            
-        # Show unified configuration
-        print(f"\n⚙️ Configuration Unifiée:")
-        print(f"  • Batch size: {extractor.batch_size}")
-        print(f"  • Cache activé: {extractor.enable_cache}")
-        print(f"  • Cache expiration: {extractor.cache_days} jours")ommits data from GitLab with comprehensive DevSecOps statistics
+Script to extract commits data from GitLab with comprehensive DevSecOps statistics
 and export to Excel format with professional formatting.
 
 Usage:
@@ -59,7 +29,7 @@ from datetime import datetime
 project_root = Path(__file__).parent.parent
 sys.path.insert(0, str(project_root))
 
-from gitlab_tools.client.gitlab_client import create_gitlab_client
+from gitlab_tools.client.gitlab_client import GitLabClient
 from gitlab_tools.extractors.commits_extractor import CommitsExtractor
 from gitlab_tools.exporters.excel_exporter import export_to_excel
 
@@ -87,8 +57,8 @@ def main():
     try:
         # Initialize GitLab client
         logger.info("Initializing GitLab client...")
-        gitlab_client_wrapper = create_gitlab_client()
-        gitlab_client = gitlab_client_wrapper.get_client()
+        gitlab_client_wrapper = GitLabClient()
+        gitlab_client = gitlab_client_wrapper.connect()
         
         # Initialize commits extractor with batch processing
         logger.info("Initializing commits extractor with batch processing...")
