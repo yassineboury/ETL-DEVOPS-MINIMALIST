@@ -5,10 +5,14 @@ Export GitLab Commits to Excel
 Script to        print("📊 Starting GitLab Commits Extraction with DevSecOps Analytics")
         print("=" * 65)
         
-        # Create commits extractor with cache support
-        extractor = CommitsExtractor(gitlab, batch_size=10, enable_cache=True)
+        # Create commits extractor with unified architecture
+        print("🏗️ Architecture Phase 2: Interface commune et configuration centralisée")
+        extractor = CommitsExtractor(gitlab, batch_size=10, enable_cache=True, cache_days=7)
         
         print("🎯 Optimized for 200+ projects with:")
+        print("  • Interface BaseExtractor commune")
+        print("  • Configuration centralisée simple")
+        print("  • Exceptions standardisées")
         print("  • Git author/committer information")
         print("  • GitLab user mapping via email")
         print("  • Change statistics (additions, deletions, files)")
@@ -19,11 +23,16 @@ Script to        print("📊 Starting GitLab Commits Extraction with DevSecOps A
         print("  • Progress tracking and error resilience")
         print("  • File-based caching for weekly extractions")
         
-        # Display cache status if available
+        # Display cache status and extractor stats
         if extractor.cache_manager:
-            print(f"
-💾 Cache Status:")
-            print(extractor.cache_manager.get_cache_health_report())ommits data from GitLab with comprehensive DevSecOps statistics
+            print(f"\n💾 Cache Status:")
+            print(extractor.cache_manager.get_cache_health_report())
+            
+        # Show unified configuration
+        print(f"\n⚙️ Configuration Unifiée:")
+        print(f"  • Batch size: {extractor.batch_size}")
+        print(f"  • Cache activé: {extractor.enable_cache}")
+        print(f"  • Cache expiration: {extractor.cache_days} jours")ommits data from GitLab with comprehensive DevSecOps statistics
 and export to Excel format with professional formatting.
 
 Usage:

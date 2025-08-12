@@ -13,22 +13,19 @@ import logging
 import re
 from contextlib import suppress
 from datetime import datetime
+from pathlib import Path
 from typing import Dict, List, Optional, Any, Tuple
 import pandas as pd
 import gitlab
 from gitlab.v4.objects import Project, ProjectCommit
 
-from ..utils.batch_processor import GitLabBatchProcessor
-from ..utils.cache_manager import CacheManager
+from ..base_extractor import BaseExtractor
+from ..config import FILE_TYPES, CHANGE_MAGNITUDE_THRESHOLDS
+from ..exceptions import GitLabExtractionError, handle_gitlab_api_error
 
 
-class CommitsExtractor:
+class CommitsExtractor(BaseExtractor):
     """Extract commits with comprehensive DevSecOps metrics and statistics."""
-    
-    # File type patterns for analysis
-    CODE_EXTENSIONS = {'.py', '.js', '.ts', '.java', '.cpp', '.c', '.cs', '.php', '.rb', '.go', '.rs', '.kt', '.swift'}
-    CONFIG_EXTENSIONS = {'.yml', '.yaml', '.json', '.xml', '.toml', '.ini', '.conf', '.cfg', '.env'}
-    DOC_EXTENSIONS = {'.md', '.rst', '.txt', '.doc', '.docx', '.pdf', '.adoc'}
     
     # Commit message patterns
     PATTERNS = {
@@ -38,14 +35,7 @@ class CommitsExtractor:
         'documentation': re.compile(r'\b(doc|docs|documentation|readme)\b', re.IGNORECASE)
     }
     
-    # Change magnitude thresholds
-    MAGNITUDE_THRESHOLDS = {
-        'Small': 50,
-        'Medium': 200,
-        'Large': 500
-    }
-    
-    def __init__(self, gitlab_client: gitlab.Gitlab, batch_size: int = 10, enable_cache: bool = True):
+    def __init__(self, gitlab_client: gitlab.Gitlab, batch_size: int = 10, enable_cache: bool = True, cache_days: int = 7):
         """
         Initialize commits extractor with GitLab client and batch processing.
         
@@ -53,22 +43,53 @@ class CommitsExtractor:
             gitlab_client: GitLab API client instance
             batch_size: Number of projects to process per batch
             enable_cache: Enable file-based caching for weekly extractions
+            cache_days: Cache expiration in days
         """
-        self.gitlab = gitlab_client
-        self.batch_processor = GitLabBatchProcessor(batch_size)
-        self.logger = logging.getLogger(__name__)
+        super().__init__(gitlab_client, batch_size, enable_cache, cache_days)
         
         # User cache for email to GitLab user mapping
         self._user_cache: Dict[str, Optional[Dict[str, Any]]] = {}
-        
-        # Cache system for weekly extractions
-        if enable_cache:
-            self.cache_manager = CacheManager()
-            self.logger.info("Cache system enabled for commits extraction")
-        else:
-            self.cache_manager = None
     
-    def extract_commits(
+    def extract(self, **kwargs) -> pd.DataFrame:
+        """
+        Extract commits from GitLab projects with comprehensive statistics.
+        
+        Args:
+            project_ids: List of project IDs to process (None = all accessible)
+            branch_name: Branch to analyze (None = default branch)
+            since: Start date for commits (ISO format)
+            until: End date for commits (ISO format)
+            max_commits: Maximum commits per project
+            use_batch_processing: Enable batch processing for large extractions
+            
+        Returns:
+            DataFrame with commit data and statistics
+        """
+        self._start_extraction()
+        
+        try:
+            # Extract parameters with defaults
+            project_ids = kwargs.get('project_ids', None)
+            branch_name = kwargs.get('branch_name', None)
+            since = kwargs.get('since', None)
+            until = kwargs.get('until', None)
+            max_commits = kwargs.get('max_commits', 1000)
+            use_batch_processing = kwargs.get('use_batch_processing', True)
+            
+            result = self._extract_commits_internal(
+                project_ids, branch_name, since, until, max_commits, use_batch_processing
+            )
+            self._end_extraction()
+            return result
+        except Exception as e:
+            self._end_extraction()
+            raise handle_gitlab_api_error(e) from e
+    
+    def extract_commits(self, **kwargs) -> pd.DataFrame:
+        """Backwards compatibility method."""
+        return self.extract(**kwargs)
+        
+    def _extract_commits_internal(
         self, 
         project_ids: Optional[List[int]] = None,
         branch_name: Optional[str] = None,
@@ -102,6 +123,7 @@ class CommitsExtractor:
             return self._create_empty_dataframe()
         
         self.logger.info(f"Processing {len(project_ids)} projects")
+        self._stats['total_projects'] = len(project_ids)
         
         # Use batch processing for large extractions
         if use_batch_processing and len(project_ids) > 5:
@@ -404,11 +426,11 @@ class CommitsExtractor:
         file_extension = self._get_file_extension(file_path)
         file_name = file_path.lower()
         
-        if file_extension in self.CODE_EXTENSIONS:
+        if file_extension in FILE_TYPES['code']:
             files_data['code_files_changed'] += 1
-        elif file_extension in self.CONFIG_EXTENSIONS:
+        elif file_extension in FILE_TYPES['config']:
             files_data['config_files_changed'] += 1
-        elif file_extension in self.DOC_EXTENSIONS:
+        elif file_extension in FILE_TYPES['docs']:
             files_data['doc_files_changed'] += 1
         elif 'test' in file_name or 'spec' in file_name:
             files_data['test_files_changed'] += 1
@@ -426,11 +448,11 @@ class CommitsExtractor:
     
     def _calculate_change_magnitude(self, total_changes: int) -> str:
         """Calculate change magnitude category."""
-        if total_changes <= self.MAGNITUDE_THRESHOLDS['Small']:
+        if total_changes <= CHANGE_MAGNITUDE_THRESHOLDS['Small']:
             return 'Small'
-        elif total_changes <= self.MAGNITUDE_THRESHOLDS['Medium']:
+        elif total_changes <= CHANGE_MAGNITUDE_THRESHOLDS['Medium']:
             return 'Medium'
-        elif total_changes <= self.MAGNITUDE_THRESHOLDS['Large']:
+        elif total_changes <= CHANGE_MAGNITUDE_THRESHOLDS['Large']:
             return 'Large'
         else:
             return 'XLarge'
@@ -457,14 +479,11 @@ class CommitsExtractor:
         self._user_cache[email] = None
         return None
     
-    def _get_accessible_projects(self) -> List[Project]:
+    def _get_accessible_projects(self, project_ids: Optional[List[int]] = None) -> List[Project]:
         """Get list of accessible projects."""
         try:
-            return self.gitlab.projects.list(
-                membership=True,
-                per_page=100,
-                order_by='last_activity_at'
-            )
+            # Use parent class method for consistency
+            return super()._get_accessible_projects(project_ids)
         except Exception as e:
             self.logger.error(f"Error fetching accessible projects: {e}")
             return []
