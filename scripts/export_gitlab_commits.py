@@ -2,7 +2,28 @@
 """
 Export GitLab Commits to Excel
 
-Script to extract commits data from GitLab with comprehensive DevSecOps statistics
+Script to        print("📊 Starting GitLab Commits Extraction with DevSecOps Analytics")
+        print("=" * 65)
+        
+        # Create commits extractor with cache support
+        extractor = CommitsExtractor(gitlab, batch_size=10, enable_cache=True)
+        
+        print("🎯 Optimized for 200+ projects with:")
+        print("  • Git author/committer information")
+        print("  • GitLab user mapping via email")
+        print("  • Change statistics (additions, deletions, files)")
+        print("  • File type analysis (code, config, docs, tests)")
+        print("  • Commit pattern detection (hotfix, feature, refactor)")
+        print("  • Change magnitude and complexity scoring")
+        print("  • Memory-efficient batch processing")
+        print("  • Progress tracking and error resilience")
+        print("  • File-based caching for weekly extractions")
+        
+        # Display cache status if available
+        if extractor.cache_manager:
+            print(f"
+💾 Cache Status:")
+            print(extractor.cache_manager.get_cache_health_report())ommits data from GitLab with comprehensive DevSecOps statistics
 and export to Excel format with professional formatting.
 
 Usage:
@@ -60,23 +81,27 @@ def main():
         gitlab_client_wrapper = create_gitlab_client()
         gitlab_client = gitlab_client_wrapper.get_client()
         
-        # Initialize commits extractor
-        logger.info("Initializing commits extractor...")
-        extractor = CommitsExtractor(gitlab_client)
+        # Initialize commits extractor with batch processing
+        logger.info("Initializing commits extractor with batch processing...")
+        batch_size = int(os.getenv('BATCH_SIZE', '10'))  # Configurable batch size
+        extractor = CommitsExtractor(gitlab_client, batch_size=batch_size)
         
-        # Extract commits data
-        print("\n📊 Extracting commits with comprehensive statistics...")
-        print("This includes:")
+        # Extract commits data with batch processing
+        print(f"\n📊 Extracting commits with batch processing (batch_size: {batch_size})...")
+        print("🎯 Optimized for 200+ projects with:")
         print("  • Git author/committer information")
         print("  • GitLab user mapping via email")
         print("  • Change statistics (additions, deletions, files)")
         print("  • File type analysis (code, config, docs, tests)")
         print("  • Commit pattern detection (hotfix, feature, refactor)")
         print("  • Change magnitude and complexity scoring")
+        print("  • Memory-efficient batch processing")
+        print("  • Progress tracking and error resilience")
         
         # Configure extraction parameters
         commits_df = extractor.extract_commits(
-            max_commits=500  # Limit for demo
+            max_commits=1000,  # Increased limit with batch processing
+            use_batch_processing=True  # Enable batch processing
             # project_ids=[123, 456],  # Uncomment to filter specific projects
             # branch_name='main',  # Uncomment to filter by branch
             # since='2024-01-01T00:00:00Z',  # Uncomment to filter by date
