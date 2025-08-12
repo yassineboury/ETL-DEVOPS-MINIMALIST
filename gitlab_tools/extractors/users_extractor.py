@@ -122,13 +122,14 @@ def _determine_user_type(user) -> str:
     # Patterns pour identifier les bots/services
     bot_patterns = [
         'bot', 'robot', 'deploy', 'ci', 'cd', 'build', 'jenkins', 'gitlab-ci',
-        'service', 'system', 'admin', 'noreply', 'ghost', 'runner'
+        'service', 'system', 'admin', 'noreply', 'ghost', 'runner', 'duo'
     ]
 
     service_patterns = [
         'deploy', 'service', 'system', 'backup', 'monitoring', 'alert',
         'scheduler', 'cron', 'batch', 'process', 'gitlabuser', 'sonarqube',
-        'nexus', 'artifactory', 'prometheus', 'grafana', 'kibana', 'elastic'
+        'nexus', 'artifactory', 'prometheus', 'grafana', 'kibana', 'elastic',
+        'gitlab-duo', 'gitlabduo', 'duo'
     ]
 
     # Vérifier les patterns de service en premier

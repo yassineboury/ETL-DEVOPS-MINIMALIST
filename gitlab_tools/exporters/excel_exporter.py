@@ -88,7 +88,7 @@ class GitLabExcelExporter:
 
     def export_users(self, df_users: pd.DataFrame, filename: str = "gitlab_users.xlsx") -> str:
         """
-        Exporte les utilisateurs vers Excel avec formatage professionnel
+        Exporte les utilisateurs vers Excel - VERSION SIMPLIFIÉE
 
         Args:
             df_users: DataFrame des utilisateurs
@@ -102,62 +102,49 @@ class GitLabExcelExporter:
             return ""
 
         try:
-            # Chemin complet du fichier directement dans gitlab/
             file_path = self.export_dir / filename
-
             print(f"📁 Export vers: {file_path}")
 
-            # Créer le workbook et la feuille
-            workbook = openpyxl.Workbook()
-            worksheet = workbook.active
-            if worksheet is None:
-                worksheet = workbook.create_sheet("Utilisateurs GitLab")
+            # Trier par date de création (plus récent en premier)
+            if 'date_creation' in df_users.columns:
+                # Convertir les dates pour un tri correct
+                df_sorted = df_users.copy()
+                
+                # Créer une colonne temporaire pour le tri
+                df_sorted['_temp_date'] = pd.to_datetime(
+                    df_sorted['date_creation'], 
+                    format='%d/%m/%Y %H:%M:%S', 
+                    errors='coerce'
+                )
+                
+                # Trier par date (plus récent en premier = descending)
+                df_sorted = df_sorted.sort_values('_temp_date', ascending=False, na_position='last')
+                
+                # Supprimer la colonne temporaire
+                df_sorted = df_sorted.drop('_temp_date', axis=1)
+                
+                print(f"📅 Utilisateurs triés par date de création (plus récent en premier)")
             else:
-                worksheet.title = "Utilisateurs GitLab"
+                df_sorted = df_users
+                print("⚠️ Colonne 'date_creation' non trouvée, pas de tri")
 
-            # Ajouter les données
-            for row in dataframe_to_rows(df_users, index=False, header=True):
-                worksheet.append(row)
+            # Export direct avec une seule feuille
+            with pd.ExcelWriter(file_path, engine='openpyxl') as writer:
+                # UNE SEULE FEUILLE nommée "Gitlab_Users"
+                df_sorted.to_excel(writer, sheet_name='Gitlab_Users', index=False)
 
-            # Appliquer le formatage
-            self._apply_header_style(worksheet, len(df_users.columns))
-            self._auto_adjust_columns(worksheet)
-
-            # Figer la première ligne
-            worksheet.freeze_panes = "A2"
-
-            # Ajouter des métadonnées
-            info_sheet = workbook.create_sheet("Informations")
-            info_data = [
-                ["Rapport", "Utilisateurs GitLab ONCF"],
-                ["Date d'export", datetime.now().strftime("%d/%m/%Y %H:%M:%S")],
-                ["Nombre d'utilisateurs", len(df_users)],
-                [
-                    "États inclus",
-                    ", ".join(df_users['etat'].unique()) if 'etat' in df_users.columns else "N/A"
-                ],
-                ["Générateur", "KENOBI DEVOPS ETL"],
-            ]
-
-            for row in info_data:
-                info_sheet.append(row)
-
-            # Ajuster la largeur des colonnes de la feuille info
-            for col in info_sheet.columns:
-                max_length = max(len(str(cell.value)) for cell in col)
-                info_sheet.column_dimensions[col[0].column_letter].width = max_length + 2
-
-            # Sauvegarder
-            workbook.save(file_path)
-            workbook.close()
+                # Formatage minimal : juste figer la première ligne
+                workbook = writer.book
+                worksheet = workbook['Gitlab_Users']
+                worksheet.freeze_panes = "A2"
 
             print(f"✅ Fichier Excel créé: {file_path}")
-            print(f"📊 {len(df_users)} utilisateurs exportés")
+            print(f"📊 {len(df_sorted)} utilisateurs exportés")
 
             return str(file_path)
 
         except Exception as e:
-            print(f"❌ Erreur lors de l'export des événements: {e}")
+            print(f"❌ Erreur lors de l'export des utilisateurs: {e}")
             return ""
 
     def export_events(self, df_events: pd.DataFrame, filename: str = "gitlab_events.xlsx") -> str:
