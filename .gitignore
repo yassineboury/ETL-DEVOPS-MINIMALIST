@@ -6,6 +6,11 @@ __pycache__/
 *$py.class
 *.so
 .Python
+
+# Cache et fichiers temporaires
+.ruff_cache/
+.mypy_cache/
+.pytest_cache/
 build/
 develop-eggs/
 dist/
@@ -35,12 +40,9 @@ ENV/
 # Configuration locale
 config/config.yaml
 
-# Fichiers de sortie
-output/*.xlsx
-output/*.csv
-
-# Exports générés
-exports/
+# Exports générés (mais garder la structure des dossiers)
+exports/gitlab/*.xlsx
+exports/sonar/*.xlsx
 
 # Logs
 logs/

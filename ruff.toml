@@ -1,0 +1,59 @@
+# Configuration Ruff pour ETL DevSecOps Minimalist
+
+# Fichiers à exclure
+exclude = [
+    ".git",
+    ".venv",
+    "venv",
+    "__pycache__",
+    "*.egg-info",
+    "build",
+    "dist",
+]
+
+# Longueur de ligne maximale (ajustée pour les messages et API calls)
+line-length = 110
+
+# Version Python cible
+target-version = "py38"
+
+[lint]
+# Règles à activer
+select = [
+    "E",   # pycodestyle errors
+    "W",   # pycodestyle warnings
+    "F",   # pyflakes
+    "I",   # isort
+    "UP",  # pyupgrade
+    "B",   # flake8-bugbear
+    "C4",  # flake8-comprehensions
+    "PIE", # flake8-pie
+    "SIM", # flake8-simplify
+]
+
+# Règles à ignorer
+ignore = [
+    # E402: Module level import not at top of file
+    # -> Acceptable dans les scripts qui modifient sys.path
+    "E402",
+    
+    # E722: Do not use bare except
+    # -> Acceptable pour la robustesse dans certains cas
+    "E722",
+]
+
+[lint.per-file-ignores]
+# Ignorer certaines règles pour les fichiers de scripts
+"scripts/*.py" = ["E402"]  # Imports après modification du sys.path
+"**/extractors/*.py" = ["E722"]  # Gestion d'erreur robuste pour APIs externes
+"**/client/*.py" = ["E722"]  # Gestion de connexion robuste
+
+[lint.isort]
+# Configuration pour le tri des imports
+known-first-party = ["gitlab_tools"]
+
+[format]
+# Configuration du formateur
+quote-style = "double"
+indent-style = "space"
+line-ending = "auto"
