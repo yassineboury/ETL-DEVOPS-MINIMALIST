@@ -597,6 +597,100 @@ def export_events_to_excel(df_events: pd.DataFrame, filename: str = "gitlab_even
     return exporter.export_events(df_events, filename)
 
 
+def _apply_basic_formatting(ws) -> None:
+    """Applique un formatage de base à la feuille Excel"""
+    header_fill = PatternFill(start_color="366092", end_color="366092", fill_type="solid")
+    header_font = Font(color="FFFFFF", bold=True)
+
+    # Appliquer le style aux en-têtes
+    for cell in ws[1]:
+        cell.fill = header_fill
+        cell.font = header_font
+        cell.alignment = Alignment(horizontal="center", vertical="center")
+
+
+def _get_column_letter(column) -> Optional[str]:
+    """Récupère la lettre de colonne du premier élément non-fusionné"""
+    for cell in column:
+        if hasattr(cell, 'column_letter'):
+            return cell.column_letter
+    return None
+
+
+def _calculate_column_width(column) -> int:
+    """Calcule la largeur optimale d'une colonne"""
+    max_length = 0
+    for cell in column:
+        try:
+            cell_length = len(str(cell.value)) if cell.value else 0
+            if cell_length > max_length:
+                max_length = cell_length
+        except Exception:
+            pass
+    return min(max_length + 2, 50)
+
+
+def _auto_adjust_columns(ws) -> None:
+    """Auto-ajuste la largeur des colonnes"""
+    for column in ws.columns:
+        column_letter = _get_column_letter(column)
+        if column_letter:
+            adjusted_width = _calculate_column_width(column)
+            ws.column_dimensions[column_letter].width = adjusted_width
+
+
+def export_to_excel(df: pd.DataFrame, filename: str, sheet_name: str = "Données",
+                    subfolder: str = "gitlab") -> str:
+    """
+    Fonction générique d'export vers Excel
+
+    Args:
+        df: DataFrame à exporter
+        filename: Nom du fichier (sans extension)
+        sheet_name: Nom de l'onglet
+        subfolder: Sous-dossier dans exports/
+
+    Returns:
+        Chemin du fichier créé
+    """
+    if df.empty:
+        raise ValueError("DataFrame vide - aucune donnée à exporter")
+
+    # Déterminer le répertoire d'export
+    current_dir = Path(__file__).parent.parent.parent
+    export_dir = current_dir / "exports" / subfolder
+    export_dir.mkdir(parents=True, exist_ok=True)
+
+    # Ajouter extension si manquante
+    if not filename.endswith('.xlsx'):
+        filename += '.xlsx'
+
+    # Chemin complet du fichier
+    file_path = export_dir / filename
+
+    try:
+        # Créer le workbook
+        wb = openpyxl.Workbook()
+        ws = wb.active
+        if ws is not None:
+            ws.title = sheet_name
+
+            # Ajouter les données
+            for r in dataframe_to_rows(df, index=False, header=True):
+                ws.append(r)
+
+            # Appliquer le formatage
+            _apply_basic_formatting(ws)
+            _auto_adjust_columns(ws)
+
+        # Sauvegarder
+        wb.save(file_path)
+        return str(file_path)
+
+    except Exception as e:
+        raise RuntimeError(f"Erreur lors de l'export: {e}") from e
+
+
 if __name__ == "__main__":
     """Test de l'exporteur Excel"""
     from pathlib import Path
