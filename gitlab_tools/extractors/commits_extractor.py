@@ -3,6 +3,7 @@ GitLab Commits Extractor
 
 Extracts comprehensive commit data from GitLab projects with DevSecOps analytics.
 Features dual approach: Git native data + GitLab user mapping.
+Includes batch processing for large-scale extractions (200+ projects).
 
 Author: DevSecOps Team
 Date: 2025-08-12
@@ -16,6 +17,8 @@ from typing import Dict, List, Optional, Any, Tuple
 import pandas as pd
 import gitlab
 from gitlab.v4.objects import Project, ProjectCommit
+
+from ..utils.batch_processor import GitLabBatchProcessor
 
 
 class CommitsExtractor:
@@ -41,9 +44,16 @@ class CommitsExtractor:
         'Large': 500
     }
     
-    def __init__(self, gitlab_client: gitlab.Gitlab):
-        """Initialize commits extractor with GitLab client."""
+    def __init__(self, gitlab_client: gitlab.Gitlab, batch_size: int = 10):
+        """
+        Initialize commits extractor with GitLab client and batch processing.
+        
+        Args:
+            gitlab_client: Authenticated GitLab client
+            batch_size: Number of projects to process per batch (optimal: 10)
+        """
         self.gitlab_client = gitlab_client
+        self.batch_processor = GitLabBatchProcessor(batch_size=batch_size)
         self.logger = logging.getLogger(__name__)
         self._user_cache: Dict[str, Optional[Dict[str, Any]]] = {}
     
@@ -53,7 +63,8 @@ class CommitsExtractor:
         branch_name: Optional[str] = None,
         since: Optional[str] = None,
         until: Optional[str] = None,
-        max_commits: int = 1000
+        max_commits: int = 1000,
+        use_batch_processing: bool = True
     ) -> pd.DataFrame:
         """
         Extract commits from GitLab projects with comprehensive statistics.
@@ -64,23 +75,63 @@ class CommitsExtractor:
             since: Start date in ISO format (YYYY-MM-DDTHH:MM:SSZ)
             until: End date in ISO format (YYYY-MM-DDTHH:MM:SSZ)
             max_commits: Maximum commits per project
+            use_batch_processing: Enable batch processing for large extractions
             
         Returns:
             DataFrame with commit data and statistics
         """
-        self.logger.info("Starting commits extraction with DevSecOps analytics")
+        self.logger.info(f"Starting commits extraction with DevSecOps analytics (batch: {use_batch_processing})")
         
         if project_ids is None:
             projects = self._get_accessible_projects()
-        else:
-            projects = [self._get_project_safely(pid) for pid in project_ids]
-            projects = [p for p in projects if p is not None]
+            project_ids = [p.id for p in projects] if projects else []
         
-        if not projects:
+        if not project_ids:
             self.logger.warning("No accessible projects found")
             return self._create_empty_dataframe()
         
+        self.logger.info(f"Processing {len(project_ids)} projects")
+        
+        # Use batch processing for large extractions
+        if use_batch_processing and len(project_ids) > 5:
+            return self._extract_commits_batch(project_ids, branch_name, since, until, max_commits)
+        else:
+            return self._extract_commits_sequential(project_ids, branch_name, since, until, max_commits)
+    
+    def _extract_commits_batch(
+        self, 
+        project_ids: List[int], 
+        branch_name: Optional[str], 
+        since: Optional[str], 
+        until: Optional[str], 
+        max_commits: int
+    ) -> pd.DataFrame:
+        """Extract commits using batch processing for optimal performance."""
+        
+        def process_project_batch(batch_project_ids: List[int]) -> pd.DataFrame:
+            """Process a batch of project IDs."""
+            return self._extract_commits_sequential(batch_project_ids, branch_name, since, until, max_commits)
+        
+        return self.batch_processor.process_projects_batch(
+            project_ids=project_ids,
+            extractor_func=process_project_batch
+        )
+    
+    def _extract_commits_sequential(
+        self, 
+        project_ids: List[int], 
+        branch_name: Optional[str], 
+        since: Optional[str], 
+        until: Optional[str], 
+        max_commits: int
+    ) -> pd.DataFrame:
+        """Extract commits sequentially (used by batch processor or small extractions)."""
+        
         all_commits_data = []
+        
+        # Get project objects from IDs
+        projects = [self._get_project_safely(pid) for pid in project_ids]
+        projects = [p for p in projects if p is not None]
         
         for project in projects:
             try:
