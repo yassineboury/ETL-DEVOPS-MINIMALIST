@@ -60,3 +60,8 @@ logs/
 # Windows  
 Thumbs.db
 ehthumbs.db
+# Cache and temporary files
+cache/
+temp_batches/
+*.log
+.DS_Store
