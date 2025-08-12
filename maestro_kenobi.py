@@ -407,10 +407,8 @@ class MaestroKenobiOrchestrator:
             print(f"👥 Utilisateurs extraits: {users_count}")
             print(f"👥 Groupes extraits: {groups_count}")
             print(f"📁 Projets extraits: {projects_count}")
+            print(f"� Fichiers Excel créés: {len(created_files)}")
             print("=" * 60)
-            print(f"👥 Utilisateurs extraits: {users_count}")
-            print(f"📁 Projets extraits: {projects_count}")
-            print(f"📊 Fichiers Excel créés: {len(created_files)}")
 
             if created_files:
                 print("\n📁 Fichiers générés:")
