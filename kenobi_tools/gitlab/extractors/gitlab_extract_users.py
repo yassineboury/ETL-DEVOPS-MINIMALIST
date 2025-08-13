@@ -2,46 +2,15 @@
 Extracteur d'utilisateurs GitLab
 Module pour extraire uniquement les vrais utilisateurs (pas les bots/services)
 """
+import sys
+from pathlib import Path
 from datetime import datetime
 from typing import Any, Dict, Optional
 
 import gitlab as python_gitlab
 import pandas as pd
 
-
-def _format_date(date_string: Optional[str]) -> str:
-    """
-    Formate une date ISO vers le format DD/MM/YYYY HH:MM:SS
-
-    Args:
-        date_string: Date au format ISO (ex: "2024-01-15T14:30:25.123Z")
-
-    Returns:
-        Date formatée (ex: "15/01/2024 14:30:25") ou "N/A" si None
-    """
-    if not date_string:
-        return "N/A"
-
-    try:
-        # Parser la date ISO (gérer différents formats)
-        if 'T' in date_string:
-            # Format ISO complet
-            date_part = date_string.split('T')[0]
-            time_part = date_string.split('T')[1].split('.')[0].split('+')[0].split('Z')[0]
-        else:
-            # Format date simple
-            date_part = date_string.split(' ')[0] if ' ' in date_string else date_string
-            time_part = date_string.split(' ')[1] if ' ' in date_string else "00:00:00"
-
-        # Parser la date
-        dt = datetime.strptime(f"{date_part} {time_part[:8]}", "%Y-%m-%d %H:%M:%S")
-
-        # Formater vers DD/MM/YYYY HH:MM:SS
-        return dt.strftime("%d/%m/%Y %H:%M:%S")
-
-    except Exception:
-        # En cas d'erreur, retourner la chaîne originale ou N/A
-        return date_string if date_string else "N/A"
+from kenobi_tools.utils.date_utils import format_gitlab_date
 
 
 def _format_name(name: Optional[str]) -> str:
@@ -228,10 +197,10 @@ def extract_human_users(
                     'admin': "Oui" if getattr(user, 'is_admin', False) else "Non",
                     'etat': _translate_state(user_state),
                     'type_utilisateur': _determine_user_type(user),
-                    'date_creation': _format_date(getattr(user, 'created_at', None)),
-                    'date_validation': _format_date(getattr(user, 'confirmed_at', None)),
-                    'derniere_activite': _format_date(getattr(user, 'last_activity_on', None)),
-                    'derniere_connexion': _format_date(getattr(user, 'current_sign_in_at', None)),
+                    'date_creation': format_gitlab_date(getattr(user, 'created_at', None)),
+                    'date_validation': format_gitlab_date(getattr(user, 'confirmed_at', None)),
+                    'derniere_activite': format_gitlab_date(getattr(user, 'last_activity_on', None)),
+                    'derniere_connexion': format_gitlab_date(getattr(user, 'current_sign_in_at', None)),
                 }
 
                 users_data.append(user_info)

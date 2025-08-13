@@ -1,3 +1,21 @@
+[build-system]
+requires = ["setuptools>=45", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "kenobi_tools"
+version = "1.0.0"
+description = "GitLab ETL and DevOps tools"
+dependencies = [
+    "python-gitlab>=6.0.0",
+    "pandas>=2.0.0", 
+    "openpyxl>=3.0.0"
+]
+
+[tool.setuptools.packages.find]
+where = ["."]
+include = ["kenobi_tools*"]
+
 [tool.ruff]
 line-length = 88
 target-version = "py311"
