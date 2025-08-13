@@ -24,7 +24,8 @@ from kenobi_tools.gitlab.exporters.gitlab_export_excel import (
     export_projects_to_excel,
     export_groups_to_excel,
 )
-from kenobi_tools.gitlab.extractors.gitlab_extract_projects import extract_projects
+from kenobi_tools.gitlab.extractors.gitlab_extract_active_projects import extract_active_projects
+from kenobi_tools.gitlab.extractors.gitlab_extract_archived_projects import extract_archived_projects
 from kenobi_tools.gitlab.extractors.gitlab_extract_users import extract_human_users
 from kenobi_tools.gitlab.extractors.gitlab_extract_groups import extract_groups
 
@@ -253,15 +254,24 @@ class MaestroKenobiOrchestrator:
                 print(self.NO_GITLAB_CONNECTION)
                 return False, 0
 
-            # Extraire tous les projets (actifs + archivés)
-            projects_df = extract_projects(self.gl, include_archived=True)
+            # Extraire les projets actifs
+            active_projects_df = extract_active_projects(self.gl)
+            print(f"✅ {len(active_projects_df)} projets actifs extraits")
+            
+            # Extraire les projets archivés
+            archived_projects_df = extract_archived_projects(self.gl)
+            print(f"✅ {len(archived_projects_df)} projets archivés extraits")
+            
+            # Combiner les deux DataFrames
+            import pandas as pd
+            projects_df = pd.concat([active_projects_df, archived_projects_df], ignore_index=True)
 
             if projects_df.empty:
                 print("❌ Aucun projet trouvé")
                 return False, 0
 
             project_count = len(projects_df)
-            print(f"✅ {project_count} projets extraits")
+            print(f"📊 Total: {project_count} projets extraits")
 
             # Statistiques rapides
             if 'etat' in projects_df.columns:
@@ -433,7 +443,7 @@ class MaestroKenobiOrchestrator:
         Returns:
             bool: True si tout s'est bien passé
         """
-        print("🚀 KENOBI DEVOPS - ORCHESTRATEUR D'EXPORT GITLAB")
+        print("🚀 MAESTRO KENOBI - DevSecOps ETL")
         print("=" * 60)
         print(f"📅 Démarrage le: {datetime.now().strftime('%d/%m/%Y à %H:%M:%S')}")
         print("=" * 60)
