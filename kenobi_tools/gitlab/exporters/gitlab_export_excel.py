@@ -26,8 +26,8 @@ class GitLabExcelExporter:
             export_dir: Répertoire d'export (défaut: exports/gitlab/)
         """
         if export_dir is None:
-            # Trouver le dossier racine du projet
-            current_dir = Path(__file__).parent.parent.parent
+            # Trouver le dossier racine du projet (remonter 4 niveaux depuis kenobi_tools/gitlab/exporters/)
+            current_dir = Path(__file__).parent.parent.parent.parent
             self.export_dir = current_dir / "exports" / "gitlab"
         else:
             self.export_dir = Path(export_dir)
@@ -46,7 +46,7 @@ class GitLabExcelExporter:
         # Style pour les en-têtes
         header_font = Font(bold=True, color="FFFFFF")
         header_fill = PatternFill(start_color="366092", end_color="366092", fill_type="solid")
-        header_alignment = Alignment(horizontal="center", vertical="center")
+        header_alignment = Alignment(horizontal="left", vertical="center")
 
         # Bordures
         thin_border = Border(
@@ -66,7 +66,7 @@ class GitLabExcelExporter:
 
     def _auto_adjust_columns(self, worksheet):
         """
-        Ajuste automatiquement la largeur des colonnes
+        Ajuste automatiquement la largeur des colonnes de façon optimale
 
         Args:
             worksheet: Feuille Excel
@@ -74,17 +74,83 @@ class GitLabExcelExporter:
         for column in worksheet.columns:
             max_length = 0
             column_name = column[0].column_letter
+            
+            # Dictionnaire des largeurs minimales par type de colonne
+            min_widths = {
+                'id': 8,
+                'nom': 15,
+                'email': 25,
+                'username': 15,
+                'url': 30,
+                'date': 18,
+                'etat': 12,
+                'admin': 8,
+                'type': 12,
+                'langage': 15,
+                'namespace': 20,
+                'complet': 25
+            }
+            
+            # Identifier le type de colonne basé sur l'en-tête
+            header = str(column[0].value).lower() if column[0].value else ""
+            min_width = 12  # Valeur par défaut
+            
+            # Déterminer la largeur minimale basée sur le type de colonne
+            for key, width in min_widths.items():
+                if key in header:
+                    min_width = width
+                    break
 
+            # Calculer la largeur maximale nécessaire
             for cell in column:
                 try:
-                    if len(str(cell.value)) > max_length:
-                        max_length = len(str(cell.value))
-                except (AttributeError, ValueError):
+                    cell_value = str(cell.value) if cell.value is not None else ""
+                    cell_length = len(cell_value)
+                    
+                    # Ajouter un peu d'espace pour les caractères larges et la mise en forme
+                    if cell_length > 0:
+                        # Bonus pour les URLs et emails
+                        if '@' in cell_value or 'http' in cell_value.lower():
+                            cell_length += 2
+                        # Bonus pour les dates
+                        elif '/' in cell_value and len(cell_value) > 8:
+                            cell_length += 1
+                    
+                    if cell_length > max_length:
+                        max_length = cell_length
+                        
+                except (AttributeError, ValueError, TypeError):
                     pass
 
-            # Ajuster la largeur (minimum 12, maximum 50)
-            adjusted_width = min(max(max_length + 2, 12), 50)
-            worksheet.column_dimensions[column_name].width = adjusted_width
+            # Ajuster la largeur finale
+            # - Minimum : basé sur le type de colonne
+            # - Ajout de marge : +3 pour l'espacement
+            # - Maximum : 60 pour éviter des colonnes trop larges
+            final_width = min(max(max_length + 3, min_width), 60)
+            worksheet.column_dimensions[column_name].width = final_width
+
+    def _apply_content_alignment(self, worksheet):
+        """
+        Applique l'alignement à gauche pour tout le contenu des cellules (sauf en-têtes)
+
+        Args:
+            worksheet: Feuille Excel
+        """
+        from openpyxl.styles import Alignment
+        
+        # Alignement à gauche pour le contenu
+        content_alignment = Alignment(horizontal="left", vertical="center")
+        
+        # Appliquer l'alignement à toutes les cellules de données
+        max_row = worksheet.max_row
+        max_col = worksheet.max_column
+        
+        # Parcourir toutes les cellules sauf la première ligne (en-têtes)
+        for row_num in range(2, max_row + 1):
+            for col_num in range(1, max_col + 1):
+                cell = worksheet.cell(row=row_num, column=col_num)
+                if cell.value is not None:  # Seulement si la cellule a une valeur
+                    cell.alignment = content_alignment
 
     def export_users(self, df_users: pd.DataFrame, filename: str = "gitlab_users.xlsx") -> str:
         """
@@ -130,16 +196,50 @@ class GitLabExcelExporter:
 
             # Export direct avec une seule feuille
             with pd.ExcelWriter(file_path, engine='openpyxl') as writer:
-                # UNE SEULE FEUILLE nommée "Gitlab_Users"
-                df_sorted.to_excel(writer, sheet_name='Gitlab_Users', index=False)
+                # Renommer les colonnes selon les spécifications
+                column_mapping = {
+                    'id_utilisateur': 'id Utilisateur',
+                    'nom_utilisateur': 'Nom Utilisateur', 
+                    'email': 'Email',
+                    'nom_complet': 'Nom Complet',
+                    'admin': 'Admin',
+                    'etat': 'Etat',
+                    'type_utilisateur': 'Type Utilisateur',
+                    'date_creation': 'Date Creation',
+                    'date_validation': 'Date Validation',
+                    'derniere_activite': 'Date Derniere Activite',
+                    'derniere_connexion': 'Date Derniere Connexion'
+                }
+                
+                # Appliquer le renommage des colonnes
+                df_renamed = df_sorted.rename(columns=column_mapping)
+                
+                # UNE SEULE FEUILLE nommée "Gitlab Users"
+                df_renamed.to_excel(writer, sheet_name='Gitlab Users', index=False)
 
-                # Formatage minimal : juste figer la première ligne
+                # Formatage et ajustement des colonnes
                 workbook = writer.book
-                worksheet = workbook['Gitlab_Users']
+                worksheet = workbook['Gitlab Users']
+                
+                # Appliquer le formatage des en-têtes
+                self._apply_header_style(worksheet, len(df_renamed.columns))
+                
+                # Ajuster automatiquement les largeurs de colonnes
+                self._auto_adjust_columns(worksheet)
+                
+                # Appliquer l'alignement à gauche pour le contenu
+                self._apply_content_alignment(worksheet)
+                
+                # Ajouter un filtre automatique sur les en-têtes
+                from openpyxl.utils import get_column_letter
+                max_col_letter = get_column_letter(worksheet.max_column)
+                worksheet.auto_filter.ref = f"A1:{max_col_letter}{worksheet.max_row}"
+                
+                # Figer la première ligne
                 worksheet.freeze_panes = "A2"
 
             print(f"✅ Fichier Excel créé: {file_path}")
-            print(f"📊 {len(df_sorted)} utilisateurs exportés")
+            print(f"📊 {len(df_renamed)} utilisateurs exportés")
 
             return str(file_path)
 
@@ -166,9 +266,17 @@ class GitLabExcelExporter:
                 # UNE SEULE FEUILLE : Données brutes pour Power BI
                 df_events.to_excel(writer, sheet_name='Événements', index=False)
 
-                # Formatage minimal : juste figer la première ligne
+                # Formatage et ajustement des colonnes
                 workbook = writer.book
                 worksheet = workbook['Événements']
+                
+                # Appliquer le formatage des en-têtes
+                self._apply_header_style(worksheet, len(df_events.columns))
+                
+                # Ajuster automatiquement les largeurs de colonnes
+                self._auto_adjust_columns(worksheet)
+                
+                # Figer la première ligne
                 worksheet.freeze_panes = "A2"
 
             print(f"✅ Export événements réussi: {file_path}")
@@ -441,18 +549,62 @@ class GitLabExcelExporter:
             file_path = self.export_dir / filename
             print(f"📁 Export projets vers: {file_path}")
 
+            # Mapping et nettoyage des colonnes pour les projets
+            column_mapping = {
+                'id_projet': 'id Projet',
+                'nom_projet': 'Nom Projet',
+                'nom_complet': 'Chemin Complet',
+                'namespace': 'Namespace',
+                'type_namespace': 'Type Namespace',
+                'date_creation': 'Date Creation',
+                'derniere_activite': 'Date Derniere Activite',
+                'dernier_commit': 'Date Dernier Commit',
+                'langage_principal': 'Langage Principal',
+                'vide': 'Projet Vide'
+            }
+            
+            # Colonnes à supprimer
+            columns_to_drop = ['url_web', 'etat', 'archivé']
+            
+            # Supprimer les colonnes non désirées
+            df_cleaned = df_projects.copy()
+            existing_columns_to_drop = [col for col in columns_to_drop if col in df_cleaned.columns]
+            if existing_columns_to_drop:
+                df_cleaned = df_cleaned.drop(columns=existing_columns_to_drop)
+                print(f"🗑️ Colonnes supprimées: {existing_columns_to_drop}")
+            
+            # Renommer les colonnes selon le mapping
+            df_renamed = df_cleaned.rename(columns=column_mapping)
+            
+            # Trier par ID décroissant (du plus grand au plus petit)
+            if 'id Projet' in df_renamed.columns:
+                df_sorted = df_renamed.sort_values('id Projet', ascending=False)
+                print(f"📊 Projets triés par ID décroissant")
+            else:
+                df_sorted = df_renamed
+                print("⚠️ Colonne 'id Projet' non trouvée, pas de tri")
+
             with pd.ExcelWriter(file_path, engine='openpyxl') as writer:
-                df_projects.to_excel(writer, sheet_name='Projets GitLab', index=False)
+                df_sorted.to_excel(writer, sheet_name='Gitlab Active Projects', index=False)
 
                 # Formatage basique
-                worksheet = writer.sheets.get('Projets GitLab')
+                worksheet = writer.sheets.get('Gitlab Active Projects')
                 if worksheet is not None:
-                    self._apply_header_style(worksheet, len(df_projects.columns))
+                    self._apply_header_style(worksheet, len(df_sorted.columns))
                     self._auto_adjust_columns(worksheet)
+                    
+                    # Appliquer l'alignement à gauche pour le contenu
+                    self._apply_content_alignment(worksheet)
+                    
+                    # Ajouter un filtre automatique sur les en-têtes
+                    from openpyxl.utils import get_column_letter
+                    max_col_letter = get_column_letter(worksheet.max_column)
+                    worksheet.auto_filter.ref = f"A1:{max_col_letter}{worksheet.max_row}"
+                    
                     worksheet.freeze_panes = "A2"
 
             print(f"✅ Fichier projets Excel créé: {file_path}")
-            print(f"📊 {len(df_projects)} projets exportés")
+            print(f"📊 {len(df_sorted)} projets exportés")
 
             return str(file_path)
 
@@ -489,6 +641,15 @@ class GitLabExcelExporter:
                 if worksheet is not None:
                     self._apply_header_style(worksheet, len(df_groups.columns))
                     self._auto_adjust_columns(worksheet)
+                    
+                    # Appliquer l'alignement à gauche pour le contenu
+                    self._apply_content_alignment(worksheet)
+                    
+                    # Ajouter un filtre automatique sur les en-têtes
+                    from openpyxl.utils import get_column_letter
+                    max_col_letter = get_column_letter(worksheet.max_column)
+                    worksheet.auto_filter.ref = f"A1:{max_col_letter}{worksheet.max_row}"
+                    
                     worksheet.freeze_panes = "A2"
 
             print(f"✅ Fichier groupes Excel créé: {file_path}")
@@ -639,16 +800,59 @@ def _get_column_letter(column) -> Optional[str]:
 
 
 def _calculate_column_width(column) -> int:
-    """Calcule la largeur optimale d'une colonne"""
+    """Calcule la largeur optimale d'une colonne avec intelligence"""
     max_length = 0
+    
+    # Obtenir l'en-tête pour déterminer le type de colonne
+    header = str(column[0].value).lower() if column[0].value else ""
+    
+    # Largeurs minimales intelligentes par type de colonne
+    min_widths = {
+        'id': 8,
+        'nom': 15,
+        'email': 25,
+        'username': 15,
+        'url': 30,
+        'date': 18,
+        'etat': 12,
+        'admin': 8,
+        'type': 12,
+        'langage': 15,
+        'namespace': 20,
+        'complet': 25,
+        'description': 30
+    }
+    
+    # Déterminer la largeur minimale
+    min_width = 12
+    for key, width in min_widths.items():
+        if key in header:
+            min_width = width
+            break
+    
+    # Calculer la largeur maximale nécessaire
     for cell in column:
         try:
-            cell_length = len(str(cell.value)) if cell.value else 0
+            cell_value = str(cell.value) if cell.value is not None else ""
+            cell_length = len(cell_value)
+            
+            # Ajustements spéciaux pour certains types de données
+            if cell_length > 0:
+                # URLs et emails nécessitent plus d'espace
+                if '@' in cell_value or 'http' in cell_value.lower():
+                    cell_length += 2
+                # Dates ont besoin d'un peu plus d'espace
+                elif '/' in cell_value and len(cell_value) > 8:
+                    cell_length += 1
+            
             if cell_length > max_length:
                 max_length = cell_length
+                
         except Exception:
             pass
-    return min(max_length + 2, 50)
+    
+    # Largeur finale : minimum basé sur le type, avec marge, maximum 60
+    return min(max(max_length + 3, min_width), 60)
 
 
 def _auto_adjust_columns(ws) -> None:
@@ -677,8 +881,8 @@ def export_to_excel(df: pd.DataFrame, filename: str, sheet_name: str = "Données
     if df.empty:
         raise ValueError("DataFrame vide - aucune donnée à exporter")
 
-    # Déterminer le répertoire d'export
-    current_dir = Path(__file__).parent.parent.parent
+    # Déterminer le répertoire d'export (remonter 4 niveaux depuis kenobi_tools/gitlab/exporters/)
+    current_dir = Path(__file__).parent.parent.parent.parent
     export_dir = current_dir / "exports" / subfolder
     export_dir.mkdir(parents=True, exist_ok=True)
 

@@ -358,7 +358,7 @@ def get_user_statistics(gl_client: python_gitlab.Gitlab) -> Dict[str, Any]:
 
 
 if __name__ == "__main__":
-    """Test de l'extracteur d'utilisateurs"""
+    """Extraction et export Excel des utilisateurs GitLab - VERSION OPTIMISÉE"""
     import sys
     from pathlib import Path
 
@@ -368,7 +368,7 @@ if __name__ == "__main__":
 
     from client.gitlab_client import create_gitlab_client
 
-    print("🧪 Test de l'extracteur d'utilisateurs GitLab")
+    print("🧪 Extraction et export Excel des utilisateurs GitLab")
     print("=" * 60)
 
     try:
@@ -376,32 +376,46 @@ if __name__ == "__main__":
         gitlab_client = create_gitlab_client()
         gl = gitlab_client.connect()
 
-        # Test 1: Statistiques générales
-        print("\n1️⃣ Statistiques générales:")
-        stats = get_user_statistics(gl)
-
-        # Test 2: Extraction utilisateurs humains actifs
-        print("\n2️⃣ Extraction utilisateurs humains actifs:")
-        active_users = extract_human_users(gl, include_blocked=False)
-
-        if not active_users.empty:
-            print(f"   Colonnes: {', '.join(active_users.columns)}")
-            print("   Premiers utilisateurs:")
-            for _i, user in active_users.head(3).iterrows():
-                print(f"     - {user['nom_complet']} (@{user['nom_utilisateur']}) - {user['etat']}")
-
-        # Test 3: Tous les utilisateurs humains
-        print("\n3️⃣ Extraction de tous les utilisateurs humains:")
+        # Extraction directe de tous les utilisateurs humains
+        print("\n📊 Extraction des utilisateurs humains...")
         all_human_users = extract_human_users(gl)
 
         if not all_human_users.empty:
-            print(f"   📊 {len(all_human_users)} utilisateurs humains trouvés")
+            print(f"   ✅ {len(all_human_users)} utilisateurs humains extraits")
             print(f"   États: {all_human_users['etat'].value_counts().to_dict()}")
 
         gitlab_client.disconnect()
 
-    except Exception as e:
-        print(f"❌ Erreur lors du test: {e}")
-        sys.exit(1)
+        # Export Excel immédiat
+        print("\n📁 Export Excel:")
+        if not all_human_users.empty:
+            try:
+                # Import de l'exporteur Excel
+                import sys
+                import os
+                sys.path.append(os.path.join(os.path.dirname(__file__), '..', '..', '..'))
+                from kenobi_tools.gitlab.exporters.gitlab_export_excel import GitLabExcelExporter
+                
+                # Créer l'exporteur et générer le fichier Excel
+                exporter = GitLabExcelExporter()
+                excel_path = exporter.export_users(all_human_users)
+                
+                if excel_path:
+                    print(f"✅ Fichier Excel généré: {excel_path}")
+                    print("\n🎉 Export terminé avec succès!")
+                else:
+                    print("❌ Erreur lors de la génération du fichier Excel")
+                    print("\n❌ Export échoué!")
+                    sys.exit(1)
+            except Exception as excel_error:
+                print(f"❌ Erreur export Excel: {excel_error}")
+                print("\n❌ Export échoué!")
+                sys.exit(1)
+        else:
+            print("❌ Aucun utilisateur à exporter")
+            print("\n❌ Export échoué!")
+            sys.exit(1)
 
-    print("\n🎉 Test terminé avec succès!")
+    except Exception as e:
+        print(f"❌ Erreur lors de l'extraction: {e}")
+        sys.exit(1)
