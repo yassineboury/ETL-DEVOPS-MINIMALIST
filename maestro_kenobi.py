@@ -18,15 +18,15 @@ from tqdm import tqdm
 project_root = Path(__file__).parent
 sys.path.insert(0, str(project_root))
 
-from gitlab_tools.client.gitlab_client import create_gitlab_client
-from gitlab_tools.exporters.excel_exporter import (
+from kenobi_tools.gitlab.client.gitlab_client import GitLabClient
+from kenobi_tools.gitlab.exporters.gitlab_export_excel import (
+    GitLabExcelExporter,
     export_projects_to_excel,
-    export_users_to_excel,
     export_groups_to_excel,
 )
-from gitlab_tools.extractors.projects_extractor import extract_projects
-from gitlab_tools.extractors.users_extractor import extract_human_users
-from gitlab_tools.extractors.groups_extractor import GroupsExtractor
+from kenobi_tools.gitlab.extractors.gitlab_extract_projects import extract_projects
+from kenobi_tools.gitlab.extractors.gitlab_extract_users import extract_human_users
+from kenobi_tools.gitlab.extractors.gitlab_extract_groups import extract_groups
 
 
 class MaestroKenobiOrchestrator:
@@ -134,7 +134,7 @@ class MaestroKenobiOrchestrator:
 
             # Créer le client GitLab
             print("🔑 Création du client GitLab...")
-            self.gitlab_client = create_gitlab_client()
+            self.gitlab_client = GitLabClient()
 
             # Se connecter
             print("🌐 Connexion à GitLab ONCF...")
@@ -208,11 +208,8 @@ class MaestroKenobiOrchestrator:
                 print(self.NO_GITLAB_CONNECTION)
                 return False, 0
 
-            # Créer l'extracteur de groupes
-            groups_extractor = GroupsExtractor(self.gl)
-            
-            # Extraire les groupes
-            groups_df = groups_extractor.extract()
+            # Extraire les groupes directement
+            groups_df = extract_groups(self.gl)
 
             if groups_df.empty:
                 print("❌ Aucun groupe trouvé")
@@ -317,9 +314,10 @@ class MaestroKenobiOrchestrator:
                 # Export des utilisateurs
                 print("👥 Export des utilisateurs...")
                 pbar.set_description("📁 Export utilisateurs")
-                users_file = export_users_to_excel(
+                exporter = GitLabExcelExporter()
+                users_file = exporter.export_users(
                     self.users_data,
-                    filename="gitlab_users.xlsx"
+                    filename="gitlab_users_filtered.xlsx"
                 )
                 if users_file:
                     created_files.append(users_file)

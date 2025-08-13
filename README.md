@@ -1,7 +1,95 @@
 # ETL DevSecOps Minimalist
 
 ## Description
-ETL simple pour extraire des indicateurs DevSecOps depuis GitLab et SonarQube, et les exporter en fichiers Excel pour analyse dans Power BI.
+ETL simple pour extraire des indicateurs DevSecOps depuis GitLab et les exporter en fichiers Excel pour analyse dans Power BI.
+
+## 🏗️ **ARCHITECTURE DU PROJET**
+
+### 📂 **Structure des dossiers**
+```
+KENOBI_DEVOPS/
+├── kenobi_tools/                  # 🛠️ Outils DevOps Kenobi (GitLab uniquement)
+│   └── gitlab/                    # 🦊 GitLab
+│       ├── client/
+│       │   └── gitlab_client.py
+│       ├── extractors/
+│       │   ├── gitlab_extract_users.py
+│       │   ├── gitlab_extract_projects.py
+│       │   ├── gitlab_extract_groups.py
+│       │   ├── gitlab_extract_commits.py
+│       │   ├── gitlab_extract_events.py
+│       │   ├── gitlab_extract_merge_requests.py
+│       │   └── gitlab_extract_pipelines.py
+│       ├── exporters/
+│       │   └── gitlab_export_excel.py
+│       └── scripts/
+│           ├── gitlab_script_users.py
+│           ├── gitlab_script_projects.py
+│           └── gitlab_script_groups.py
+├── shared/                        # 🔧 Code commun Kenobi
+│   ├── config/
+│   │   └── shared_config.py
+│   ├── utils/
+│   │   └── shared_utils.py
+│   └── exporters/
+│       └── shared_export_base.py
+├── config/                        # ⚙️ Configuration globale
+├── exports/                       # 📁 Fichiers de sortie
+└── maestro_kenobi.py             # 🎼 Orchestrateur principal
+```
+
+### 📝 **CONVENTIONS DE NOMMAGE**
+
+#### **Format** : `{outil}_{responsabilité}_{fonction}.py`
+
+| **Responsabilité** | **Format** | **Exemple** |
+|-------------------|------------|-------------|
+| **Client** | `{outil}_client.py` | `gitlab_client.py` |
+| **Extracteur** | `{outil}_extract_{fonction}.py` | `gitlab_extract_users.py` |
+| **Exporteur** | `{outil}_export_{format}.py` | `gitlab_export_excel.py` |
+| **Script** | `{outil}_script_{fonction}.py` | `gitlab_script_users.py` |
+| **Partagé** | `shared_{type}.py` | `shared_config.py` |
+
+#### **Avantages** :
+- ✅ **Identification immédiate** : outil + rôle + fonction
+- ✅ **Tri alphabétique** naturel par outil
+- ✅ **Recherche facilitée** par nom de fichier
+- ✅ **Convention uniforme** sur tous les outils
+- ✅ **Évolutivité** : nouveau rôle = nouveau dossier
+
+---
+
+## 🚀 **UTILISATION**
+
+### **Orchestrateur principal**
+```bash
+# Export complet de tous les outils
+python maestro_kenobi.py
+```
+
+### **Scripts spécialisés**
+```bash
+# GitLab seulement
+python -m kenobi_tools.gitlab.scripts.gitlab_script_users
+python -m kenobi_tools.gitlab.scripts.gitlab_script_projects
+python -m kenobi_tools.gitlab.scripts.gitlab_script_groups
+```
+
+### **Développement - Nouveaux fichiers**
+
+#### **Créer un nouvel extracteur**
+1. **Dossier** : `kenobi_tools/{outil}/extractors/`
+2. **Nom** : `{outil}_extract_{fonction}.py`
+3. **Exemple** : `gitlab_extract_commits.py`
+
+#### **Créer un nouvel outil**
+1. **Structure** : Copier `kenobi_tools/gitlab/` → `kenobi_tools/{nouvel_outil}/`
+2. **Renommer** tous les fichiers selon la convention
+3. **Adapter** le client et les extracteurs
+
+> **💡 Note** : Pour le moment, seul GitLab est implémenté. Les autres outils (SonarQube, Jenkins, etc.) peuvent être ajoutés plus tard en suivant la même structure.
+
+---
 
 ## 🚀 **État actuel du projet**
 
@@ -13,88 +101,160 @@ ETL simple pour extraire des indicateurs DevSecOps depuis GitLab et SonarQube, e
 
 ### 🚧 **En développement**
 - GitLab : Commits, Events, MR, Pipelines
-- SonarQube : Tous les modules
 
 ### 📋 **Roadmap**
-1. Compléter les extracteurs GitLab
-2. Implémenter les modules SonarQube  
-3. Ajouter Dependency Track
-4. Interface web (optionnel)
+1. ✅ **Architecture validée** : Dossiers + convention de nommage
+2. ✅ **Migration terminée** : `gitlab_tools/` → `kenobi_tools/gitlab/`
+3. � **GitLab complet** : Commits, Events, MR, Pipelines
+4. � **Futurs outils** : SonarQube, Jenkins, Docker/K8s (si besoin)
 
-## Indicateurs collectés
+### 🎯 **État actuel**
+- **État** : Architecture kenobi_tools/ opérationnelle
+- **Fonctionnel** : GitLab Users, Projects, Groups
+- **Migration** : ✅ Terminée avec succès
+
+## 📊 **INDICATEURS COLLECTÉS**
 
 ### GitLab ✅ **Implémenté**
-- **Projets** : Liste des projets, statuts, dernière activité
-- **Users** : Contributeurs actifs, rôles, permissions
+- **👥 Utilisateurs** : 158 utilisateurs humains (filtrage bot natif + patterns custom)
+- **📂 Projets** : Liste des projets, statuts, dernière activité  
+- **👥 Groupes** : Organisation et permissions
 
-### 🚧 **En cours de développement**
-- **Commits** : Nombre de commits par projet/période
-- **Events** : Activités récentes (push, merge, etc.)
-- **Merge Requests** : Statuts, temps de review
-- **Pipelines** : Succès/échecs, durées
+### 🚧 **En développement GitLab**
+- **💾 Commits** : Nombre de commits par projet/période
+- **📋 Events** : Activités récentes (push, merge, etc.)
+- **🔀 Merge Requests** : Statuts, temps de review
+- **🔧 Pipelines** : Succès/échecs, durées
 
-### SonarQube 🔮 **À venir**
-- **Couverture de code** : Pourcentages par projet
-- **Bugs** : Nombre et sévérité
-- **Vulnérabilités** : Critiques, majeures, mineures
-- **Code smells** : Dette technique
-- **Quality Gates** : Statuts de validation
+---
 
-## Architecture
+## 🛠️ **RÈGLES DE DÉVELOPPEMENT**
 
-```
-etl-devsecops/
-├── 📄 maestro_kenobi.py           # 🎯 MAESTRO KENOBI - Orchestrateur principal avec UI
-├── 📄 STATUS_GITLAB.md           # Documentation connexion
-├── 📁 config/
-│   ├── config.yaml                # Configuration URLs/tokens
-│   ├── config.example.yaml        # Template de configuration  
-│   └── projects.yaml              # Liste des 200 projets
-├── 📁 gitlab_tools/               # 🔧 Modules GitLab (architecture modulaire)
-│   ├── client/
-│   │   └── gitlab_client.py       # Client GitLab centralisé
-│   ├── extractors/
-│   │   ├── projects_extractor.py  # Extraction projets GitLab
-│   │   └── users_extractor.py     # Extraction utilisateurs GitLab
-│   └── exporters/
-│       └── excel_exporter.py      # Export vers Excel
-├── 📁 scripts/                    # Scripts d'export spécifiques
-│   ├── export_gitlab_projects.py  # Script projets
-│   └── export_gitlab_users.py     # Script utilisateurs
-├── 📁 exports/gitlab/             # 📊 Fichiers Excel générés
-├── 📄 requirements.txt            # Dépendances Python
-└── 📄 pyproject.toml              # Configuration Ruff
-```
+### **� Création de nouveaux fichiers**
+1. **Respecter l'architecture** définie dans ce README
+2. **Suivre les conventions de nommage** : `{outil}_{responsabilité}_{fonction}.py`
+3. **Placer dans le bon dossier** selon la responsabilité
+4. **Ajouter les imports** et `__init__.py` si nécessaire
 
-### 🚧 **Modules en développement (SonarQube)**
-```
-├── 📁 sonar_tools/ (à venir)
-│   ├── extractors/
-│   │   ├── coverage_extractor.py
-│   │   ├── bugs_extractor.py
-│   │   ├── vulnerabilities_extractor.py
-│   │   └── quality_gates_extractor.py
+### **🔧 Bonnes pratiques**
+- **Un fichier = une responsabilité** claire
+- **Réutiliser le code partagé** dans `shared/`
+- **Documenter les fonctions** avec docstrings
+- **Tester localement** avant de commit
+
+### **📊 Standards Excel**
+- **Un seul onglet** par fichier Excel
+- **Nom d'onglet explicite** : "Gitlab_Users", "Gitlab_Projects", etc.
+- **Formatage simple** : données brutes, pas de couleurs/styles complexes
+- **Colonnes claires** : noms explicites sans espaces (underscore accepté)
+- **Tri chronologique** : le plus récent en premier quand applicable
+- **Compatible Power BI** : import direct sans retraitement
+
+### **🎯 Points de référence**
+- **Architecture** : Ce README (section structure)
+- **Conventions** : Ce README (section conventions)
+- **Exemple GitLab** : `kenobi_tools/gitlab/` comme modèle de référence
 │   └── exporters/
 └── 📁 exports/sonar/ (à venir)
-```
+---
 
-## Installation
+## 🚧 **INSTALLATION**
 
 1. **Cloner le projet**
 ```bash
 git clone https://github.com/yassineboury/ETL-DEVOPS-MINIMALIST.git
-cd ETL-DEVOPS-MINIMALIST
+cd KENOBI_DEVOPS
 ```
 
 2. **Créer environnement virtuel**
 ```bash
 python3 -m venv venv
 source venv/bin/activate  # macOS/Linux
+.\venv\Scripts\Activate.ps1  # Windows
 ```
 
 3. **Installer les dépendances**
 ```bash
 pip install -r requirements.txt
+```
+
+4. **Configurer les accès**
+   - Copier `config/config.example.yaml` vers `config/config.yaml`
+   - Renseigner les URLs et tokens GitLab/SonarQube
+
+## ⚙️ **CONFIGURATION**
+
+### config/config.yaml
+```yaml
+gitlab:
+  url: "https://gitlab.votre-entreprise.com"
+  token: "${GITLAB_TOKEN}"
+
+extraction:
+  batch_size: 50
+  delay_between_calls: 1
+  timeout: 30
+```
+
+### Variables d'environnement (.env)
+```bash
+GITLAB_TOKEN=your-gitlab-token
+```
+
+---
+
+## 📊 **OUTPUTS & POWER BI**
+
+### **📊 Outputs & Power BI**
+
+#### **Fichiers générés**
+```
+exports/
+└── gitlab/
+    ├── gitlab_users_filtered.xlsx     # 158 utilisateurs humains
+    ├── gitlab_projects.xlsx           # Projets GitLab  
+    └── gitlab_groups.xlsx             # Groupes GitLab
+```
+
+#### **Format Excel standardisé**
+- ✅ **Un seul onglet** par fichier (ex: "Gitlab_Users")
+- ✅ **Formatage simple** : données tabulaires, sans mise en forme complexe
+- ✅ **Tri par date** : le plus récent en premier
+- ✅ **Noms explicites** : colonnes claires et sans espaces
+- ✅ **Compatible Power BI** : import direct sans traitement
+
+#### **Import Power BI**
+1. **Obtenir les données** > **Fichier** > **Excel**
+2. Sélectionner `exports/gitlab/*.xlsx`
+3. ✅ **Avantage** : Un seul onglet → sélection automatique
+4. Import direct → pas de manipulation nécessaire
+
+---
+
+## 📅 **UTILISATION & PLANIFICATION**
+
+### **Production (recommandé)**
+```bash
+# Export complet tous outils
+python maestro_kenobi.py
+```
+
+### **Développement/Tests**
+```bash
+# GitLab utilisateurs seulement
+python -m tools.gitlab.scripts.gitlab_script_users
+
+# GitLab projets seulement
+python -m tools.gitlab.scripts.gitlab_script_projects
+```
+
+### **Planification automatique**
+```bash
+# Cron (Linux/macOS) - Dimanche 22h
+0 22 * * 0 cd /path/to/KENOBI_DEVOPS && python maestro_kenobi.py
+
+# Tâches planifiées Windows
+schtasks /create /tn "KENOBI_EXTRACT" /tr "python maestro_kenobi.py" /sc weekly
 ```
 
 4. **Configurer les accès**
@@ -144,15 +304,16 @@ python maestro_kenobi.py
 
 ## Outputs
 
-Les fichiers Excel sont générés dans le dossier `exports/gitlab/` :
-- `gitlab_projects.xlsx` : Données des projets GitLab
-- `gitlab_users.xlsx` : Données des utilisateurs GitLab
-- `gitlab_rapport_complet.xlsx` : Rapport consolidé complet
+Les fichiers Excel sont générés dans le dossier `exports/` avec **un seul onglet par fichier** :
+- `exports/gitlab/gitlab_projects.xlsx` : Projets GitLab (onglet "Gitlab_Projects")
+- `exports/gitlab/gitlab_users_filtered.xlsx` : Utilisateurs humains (onglet "Gitlab_Users")
+- `exports/gitlab/gitlab_groups.xlsx` : Groupes GitLab (onglet "Gitlab_Groups")
 
-**Format des fichiers :**
-- Noms simples sans horodatage pour faciliter l'intégration
-- Multiples onglets par type d'indicateur
-- Compatible Power BI Desktop
+**Format standardisé :**
+- ✅ **Un seul onglet** avec nom explicite
+- ✅ **Formatage simple** pour Power BI
+- ✅ **Données triées** (plus récent en premier)
+- ✅ **Import direct** sans retraitement
 
 ### 🔄 **Nettoyage automatique**
 MAESTRO KENOBI supprime automatiquement les anciens fichiers avant chaque export.
@@ -162,11 +323,11 @@ MAESTRO KENOBI supprime automatiquement les anciens fichiers avant chaque export
 1. Ouvrir Power BI Desktop
 2. **Obtenir les données** > **Fichier** > **Excel**
 3. Sélectionner les fichiers `gitlab_*.xlsx` dans `exports/gitlab/`
-4. Choisir les onglets à importer
-5. Créer vos visualisations
+4. ✅ **Avantage** : Un seul onglet par fichier → sélection automatique
+5. Import direct → Créer vos visualisations
 
 ### 💡 **Conseil**
-Utilisez les fichiers les plus récents (horodatage dans le nom) pour vos analyses.
+Format standardisé → Import Power BI simplifié (pas de sélection d'onglets multiples).
 
 ## Planification
 

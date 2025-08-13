@@ -50,7 +50,7 @@ ignore = [
 
 [lint.isort]
 # Configuration pour le tri des imports
-known-first-party = ["gitlab_tools"]
+known-first-party = ["kenobi_tools"]
 
 [format]
 # Configuration du formateur

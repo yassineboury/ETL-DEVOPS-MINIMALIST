@@ -15,4 +15,4 @@ ignore = [
 ]
 
 [tool.ruff.lint.isort]
-known-first-party = ["gitlab_tools"]
+known-first-party = ["kenobi_tools"]

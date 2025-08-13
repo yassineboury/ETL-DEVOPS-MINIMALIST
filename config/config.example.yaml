@@ -1,4 +1,4 @@
-# Copie de config.yaml pour personnalisation
+# Configuration KENOBI_TOOLS - GitLab uniquement
 # 1. Copiez ce fichier vers config.yaml
 # 2. Remplacez les URLs par vos instances
 # 3. Configurez vos tokens dans le fichier .env
@@ -6,10 +6,6 @@
 gitlab:
   url: "https://gitlab.votre-entreprise.com"
   token: "${GITLAB_TOKEN}"
-  
-sonar:
-  url: "https://sonar.votre-entreprise.com"
-  token: "${SONAR_TOKEN}"
 
 extraction:
   batch_size: 50
