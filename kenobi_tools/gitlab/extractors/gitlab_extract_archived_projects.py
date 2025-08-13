@@ -1,6 +1,6 @@
 """
-Extracteur de projets GitLab
-Module pour extraire les informations des projets GitLab selon les spécifications
+Extracteur de projets archivés GitLab
+Module pour extraire les informations des projets archivés GitLab selon les spécifications
 """
 from datetime import datetime
 from typing import Any, Dict, Optional
@@ -282,6 +282,64 @@ def extract_active_projects(gl_client: python_gitlab.Gitlab) -> pd.DataFrame:
     return extract_projects(gl_client, include_archived=False)
 
 
+def extract_archived_projects(gl_client: python_gitlab.Gitlab) -> pd.DataFrame:
+    """
+    Extrait uniquement les projets archivés + projets dans projets-archives/
+
+    Args:
+        gl_client: Client GitLab authentifié
+
+    Returns:
+        DataFrame avec les projets archivés uniquement
+    """
+    print("🔍 Extraction des projets archivés uniquement...")
+    
+    # Extraire tous les projets (actifs + archivés)
+    all_projects_df = extract_projects(gl_client, include_archived=True)
+    
+    if all_projects_df.empty:
+        print("⚠️ Aucun projet trouvé")
+        return pd.DataFrame()
+    
+    # Filtrer pour ne garder que les projets archivés OU ceux dans projets-archives/
+    archived_projects = []
+    
+    for index, project in all_projects_df.iterrows():
+        is_archived = False
+        
+        # Condition 1: projet officiellement archivé
+        if 'archivé' in project and project['archivé'] == 'Oui':
+            is_archived = True
+        
+        # Condition 2: projet dans le dossier projets-archives/
+        if 'nom_complet' in project and str(project['nom_complet']).startswith('projets-archives/'):
+            is_archived = True
+        
+        if is_archived:
+            archived_projects.append(project)
+    
+    archived_df = pd.DataFrame(archived_projects)
+    
+    if not archived_df.empty:
+        print(f"📦 {len(archived_df)} projets archivés trouvés sur {len(all_projects_df)} total")
+        # Compter les différents types
+        official_archived = 0
+        folder_archived = 0
+        
+        if 'archivé' in archived_df.columns:
+            official_archived = len(archived_df[archived_df['archivé'] == 'Oui'])
+        
+        if 'nom_complet' in archived_df.columns:
+            folder_archived = len(archived_df[archived_df['nom_complet'].astype(str).str.startswith('projets-archives/')])
+        
+        print(f"  - {official_archived} projets officiellement archivés")
+        print(f"  - {folder_archived} projets dans projets-archives/")
+    else:
+        print("⚠️ Aucun projet archivé trouvé")
+    
+    return archived_df
+
+
 def get_project_statistics(gl_client: python_gitlab.Gitlab) -> Dict[str, Any]:
     """
     Récupère des statistiques sur les projets
@@ -351,7 +409,7 @@ if __name__ == "__main__":
 
     from client.gitlab_client import create_gitlab_client
 
-    print("🧪 Extraction et export Excel des projets GitLab")
+    print("🧪 Extraction et export Excel des projets archivés GitLab")
     print("=" * 60)
 
     try:
@@ -359,19 +417,19 @@ if __name__ == "__main__":
         gitlab_client = create_gitlab_client()
         gl = gitlab_client.connect()
 
-        # Extraction directe des projets actifs seulement
-        print("\n📊 Extraction des projets actifs...")
-        active_projects = extract_active_projects(gl)
+        # Extraction directe des projets archivés seulement
+        print("\n📊 Extraction des projets archivés...")
+        archived_projects = extract_archived_projects(gl)
 
-        if not active_projects.empty:
-            print(f"   ✅ {len(active_projects)} projets actifs extraits")
-            print(f"   États: {active_projects['etat'].value_counts().to_dict()}")
+        if not archived_projects.empty:
+            print(f"   ✅ {len(archived_projects)} projets archivés extraits")
+            print(f"   États: {archived_projects['etat'].value_counts().to_dict()}")
         
         gitlab_client.disconnect()
 
         # Export Excel immédiat
         print("\n📁 Export Excel:")
-        if not active_projects.empty:
+        if not archived_projects.empty:
             try:
                 # Import de l'exporteur Excel
                 import sys
@@ -381,7 +439,7 @@ if __name__ == "__main__":
                 
                 # Créer l'exporteur et générer le fichier Excel
                 exporter = GitLabExcelExporter()
-                excel_path = exporter.export_projects(active_projects, "gitlab_active_projects.xlsx")
+                excel_path = exporter.export_projects(archived_projects, "gitlab_archived_projects.xlsx", "Gitlab Archived Projects")
                 
                 if excel_path:
                     print(f"✅ Fichier Excel généré: {excel_path}")
@@ -390,7 +448,7 @@ if __name__ == "__main__":
             except Exception as excel_error:
                 print(f"❌ Erreur export Excel: {excel_error}")
         else:
-            print("❌ Aucun projet à exporter")
+            print("❌ Aucun projet archivé à exporter")
 
         gitlab_client.disconnect()
 

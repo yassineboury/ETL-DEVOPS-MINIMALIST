@@ -381,7 +381,7 @@ if __name__ == "__main__":
                 
                 # Créer l'exporteur et générer le fichier Excel
                 exporter = GitLabExcelExporter()
-                excel_path = exporter.export_projects(active_projects, "gitlab_active_projects.xlsx")
+                excel_path = exporter.export_projects(active_projects, "gitlab_active_projects.xlsx", "Gitlab Active Projects")
                 
                 if excel_path:
                     print(f"✅ Fichier Excel généré: {excel_path}")

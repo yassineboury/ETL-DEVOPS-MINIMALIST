@@ -23,7 +23,24 @@ class GitLabExcelExporter:
         Initialise l'exporteur
 
         Args:
-            export_dir: Répertoire d'export (défaut: exports/gitlab/)
+                        # Formatage basique
+                worksheet = writer.sheets.get('Gitlab Groups')
+                if worksheet is not None:
+                    self._apply_header_style(worksheet, len(df_renamed.columns))
+                    self._auto_adjust_columns(worksheet)
+                    
+                    # Appliquer l'alignement à gauche pour le contenu
+                    self._apply_content_alignment(worksheet)
+                    
+                    # Ajouter un filtre automatique sur les en-têtes
+                    from openpyxl.utils import get_column_letter
+                    max_col_letter = get_column_letter(worksheet.max_column)
+                    worksheet.auto_filter.ref = f"A1:{max_col_letter}{worksheet.max_row}"
+                    
+                    worksheet.freeze_panes = "A2"
+
+            print(f"✅ Fichier groupes Excel créé: {file_path}")
+            print(f"📊 {len(df_renamed)} groupes exportés")pertoire d'export (défaut: exports/gitlab/)
         """
         if export_dir is None:
             # Trouver le dossier racine du projet (remonter 4 niveaux depuis kenobi_tools/gitlab/exporters/)
@@ -529,7 +546,7 @@ class GitLabExcelExporter:
 # Fonctions utilitaires publiques
 
     def export_projects(
-        self, df_projects: pd.DataFrame, filename: str = "gitlab_projects.xlsx"
+        self, df_projects: pd.DataFrame, filename: str = "gitlab_projects.xlsx", sheet_name: str = "Gitlab Active Projects"
     ) -> str:
         """
         Exporte les projets vers Excel
@@ -537,6 +554,7 @@ class GitLabExcelExporter:
         Args:
             df_projects: DataFrame des projets
             filename: Nom du fichier
+            sheet_name: Nom de la feuille Excel
 
         Returns:
             Chemin complet du fichier créé
@@ -585,10 +603,10 @@ class GitLabExcelExporter:
                 print("⚠️ Colonne 'id Projet' non trouvée, pas de tri")
 
             with pd.ExcelWriter(file_path, engine='openpyxl') as writer:
-                df_sorted.to_excel(writer, sheet_name='Gitlab Active Projects', index=False)
+                df_sorted.to_excel(writer, sheet_name=sheet_name, index=False)
 
                 # Formatage basique
-                worksheet = writer.sheets.get('Gitlab Active Projects')
+                worksheet = writer.sheets.get(sheet_name)
                 if worksheet is not None:
                     self._apply_header_style(worksheet, len(df_sorted.columns))
                     self._auto_adjust_columns(worksheet)
@@ -633,13 +651,49 @@ class GitLabExcelExporter:
             file_path = self.export_dir / filename
             print(f"📁 Export groupes vers: {file_path}")
 
+            # Trier les groupes par ID décroissant (plus récent en premier)
+            if 'id' in df_groups.columns:
+                df_sorted = df_groups.sort_values('id', ascending=False)
+                print(f"🔢 Groupes triés par ID décroissant")
+            else:
+                df_sorted = df_groups
+                print("⚠️ Colonne 'id' non trouvée, pas de tri")
+
+            # Mapping et nettoyage des colonnes pour les groupes
+            column_mapping = {
+                'id': 'id Groupe',
+                'name': 'Nom Groupe',
+                'path': 'Chemin Groupe',
+                'full_name': 'Nom Complet Groupe',
+                'full_path': 'Chemin Complet Groupe',
+                'created_at': 'Date Creation',
+                'parent_id': 'id Parent',
+                'parent_name': 'Groupe Parent',
+                'projects_count': 'Nombre Projets',
+                'members_count': 'Nombre Membres',
+                'subgroups_count': 'Nombre Sous-Groupes'
+            }
+            
+            # Colonnes à supprimer pour les groupes
+            columns_to_drop = ['description', 'visibility', 'web_url']
+            
+            # Supprimer les colonnes non désirées
+            df_cleaned = df_sorted.copy()
+            existing_columns_to_drop = [col for col in columns_to_drop if col in df_cleaned.columns]
+            if existing_columns_to_drop:
+                df_cleaned = df_cleaned.drop(columns=existing_columns_to_drop)
+                print(f"🗑️ Colonnes supprimées: {existing_columns_to_drop}")
+            
+            # Renommer les colonnes selon le mapping
+            df_renamed = df_cleaned.rename(columns=column_mapping)
+
             with pd.ExcelWriter(file_path, engine='openpyxl') as writer:
-                df_groups.to_excel(writer, sheet_name='Groupes GitLab', index=False)
+                df_renamed.to_excel(writer, sheet_name='Gitlab Groups', index=False)
 
                 # Formatage basique
-                worksheet = writer.sheets.get('Groupes GitLab')
+                worksheet = writer.sheets.get('Gitlab Groups')
                 if worksheet is not None:
-                    self._apply_header_style(worksheet, len(df_groups.columns))
+                    self._apply_header_style(worksheet, len(df_renamed.columns))
                     self._auto_adjust_columns(worksheet)
                     
                     # Appliquer l'alignement à gauche pour le contenu
@@ -653,7 +707,7 @@ class GitLabExcelExporter:
                     worksheet.freeze_panes = "A2"
 
             print(f"✅ Fichier groupes Excel créé: {file_path}")
-            print(f"📊 {len(df_groups)} groupes exportés")
+            print(f"📊 {len(df_renamed)} groupes exportés")
 
             return str(file_path)
 
