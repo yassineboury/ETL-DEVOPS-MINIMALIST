@@ -8,6 +8,8 @@ from typing import Any, Dict, Optional
 import gitlab as python_gitlab
 import pandas as pd
 
+from ...utils.constants import PROJET_ARCHIVE_STATUS, PROJETS_ARCHIVES_PATH
+
 
 def _format_date(date_string: Optional[str]) -> str:
     """
@@ -171,7 +173,7 @@ def _get_dominant_language(project) -> str:
             dominant_language = max(languages.items(), key=lambda x: x[1])
             return dominant_language[0]
             
-    except Exception as e:
+    except Exception:
         # En cas d'erreur d'API ou d'accès, ignorer silencieusement
         pass
         
@@ -205,7 +207,7 @@ def _build_project_info(project) -> Dict[str, Any]:
         'dernier_commit': last_commit_date,
         'langage_principal': _get_dominant_language(project),
         'etat': _determine_project_state(project),
-        'archivé': "Oui" if is_archived else "Non",
+        PROJET_ARCHIVE_STATUS: "Oui" if is_archived else "Non",
         'vide': _is_empty_project(project),
     }
 
@@ -282,6 +284,27 @@ def extract_active_projects(gl_client: python_gitlab.Gitlab) -> pd.DataFrame:
     return extract_projects(gl_client, include_archived=False)
 
 
+def _is_project_archived(project) -> bool:
+    """
+    Détermine si un projet est archivé selon nos critères
+    
+    Args:
+        project: Ligne du DataFrame représentant un projet
+        
+    Returns:
+        True si le projet est archivé, False sinon
+    """
+    # Condition 1: projet officiellement archivé
+    if PROJET_ARCHIVE_STATUS in project and project[PROJET_ARCHIVE_STATUS] == 'Oui':
+        return True
+    
+    # Condition 2: projet dans le dossier projets-archives/
+    if 'nom_complet' in project and str(project['nom_complet']).startswith(PROJETS_ARCHIVES_PATH):
+        return True
+        
+    return False
+
+
 def extract_archived_projects(gl_client: python_gitlab.Gitlab) -> pd.DataFrame:
     """
     Extrait uniquement les projets archivés + projets dans projets-archives/
@@ -305,17 +328,7 @@ def extract_archived_projects(gl_client: python_gitlab.Gitlab) -> pd.DataFrame:
     archived_projects = []
     
     for index, project in all_projects_df.iterrows():
-        is_archived = False
-        
-        # Condition 1: projet officiellement archivé
-        if 'archivé' in project and project['archivé'] == 'Oui':
-            is_archived = True
-        
-        # Condition 2: projet dans le dossier projets-archives/
-        if 'nom_complet' in project and str(project['nom_complet']).startswith('projets-archives/'):
-            is_archived = True
-        
-        if is_archived:
+        if _is_project_archived(project):
             archived_projects.append(project)
     
     archived_df = pd.DataFrame(archived_projects)
@@ -326,11 +339,11 @@ def extract_archived_projects(gl_client: python_gitlab.Gitlab) -> pd.DataFrame:
         official_archived = 0
         folder_archived = 0
         
-        if 'archivé' in archived_df.columns:
-            official_archived = len(archived_df[archived_df['archivé'] == 'Oui'])
+        if PROJET_ARCHIVE_STATUS in archived_df.columns:
+            official_archived = len(archived_df[archived_df[PROJET_ARCHIVE_STATUS] == 'Oui'])
         
         if 'nom_complet' in archived_df.columns:
-            folder_archived = len(archived_df[archived_df['nom_complet'].astype(str).str.startswith('projets-archives/')])
+            folder_archived = len(archived_df[archived_df['nom_complet'].astype(str).str.startswith(PROJETS_ARCHIVES_PATH)])
         
         print(f"  - {official_archived} projets officiellement archivés")
         print(f"  - {folder_archived} projets dans projets-archives/")

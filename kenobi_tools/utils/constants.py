@@ -13,6 +13,10 @@ EXPORTS_GITLAB_PATH = "exports/gitlab"
 
 # Messages d'erreur standardisés
 ERROR_EXPORT_FAILED = "\n❌ Export échoué!"
+
+# Status de projet - labels français
+PROJET_ARCHIVE_STATUS = "archivé"
+PROJETS_ARCHIVES_PATH = "projets-archives/"
 ERROR_EXTRACTION_FAILED = "❌ Erreur lors de l'extraction"
 
 # Statuts de projets
