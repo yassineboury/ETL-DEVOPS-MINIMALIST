@@ -9,6 +9,8 @@ from typing import Any, Dict, Optional
 
 import gitlab as python_gitlab
 import pandas as pd
+from ...utils.constants import ERROR_EXPORT_FAILED
+import pandas as pd
 
 from kenobi_tools.utils.date_utils import format_gitlab_date
 
@@ -374,15 +376,15 @@ if __name__ == "__main__":
                     print("\n🎉 Export terminé avec succès!")
                 else:
                     print("❌ Erreur lors de la génération du fichier Excel")
-                    print("\n❌ Export échoué!")
+                    print(ERROR_EXPORT_FAILED)
                     sys.exit(1)
             except Exception as excel_error:
                 print(f"❌ Erreur export Excel: {excel_error}")
-                print("\n❌ Export échoué!")
+                print(ERROR_EXPORT_FAILED)
                 sys.exit(1)
         else:
             print("❌ Aucun utilisateur à exporter")
-            print("\n❌ Export échoué!")
+            print(ERROR_EXPORT_FAILED)
             sys.exit(1)
 
     except Exception as e:
