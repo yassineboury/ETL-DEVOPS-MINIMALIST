@@ -431,10 +431,66 @@ def log_dataframe(df, name):
 
 ---
 
-**🔧 Variables d'environnement requises:**
+## 🏷️ **STRATÉGIE DE VERSIONING & TAGGING**
+
+### **📈 VERSIONS MAJEURES (X.0.0)**
+```bash
+v1.0.0 - Master Class (-69% cognitive) [ACTUEL ✨]
+v2.0.0 - Révolution architecture (nouvelles plateformes DevOps)
+v3.0.0 - Migration technologies (Docker, K8s, CI/CD)
+```
+
+### **🔧 VERSIONS MINEURES (1.X.0)**
+```bash
+v1.1.0 - Nouveaux extracteurs GitLab (Issues, MRs, Pipelines)
+v1.2.0 - Support autres plateformes (Jira, Azure DevOps, GitHub)
+v1.3.0 - Améliorations Power BI (nouveaux connecteurs)
+v1.4.0 - Optimisations performances (parallélisation, cache)
+```
+
+### **🐛 VERSIONS PATCH (1.0.X)**
+```bash
+v1.0.1 - Corrections bugs mineurs
+v1.0.2 - Améliorations UX (messages, progress bars)
+v1.0.3 - Optimisations SonarCloud (réduction complexité restante)
+```
+
+### **🏆 TAGS SPÉCIAUX**
+```bash
+v1.0.0-golden      # Version de référence absolue
+v1.x.x-sonar-ready # Optimisé pour SonarCloud
+v1.x.x-powerbi-enhanced # Améliorations Power BI spécifiques
+v1.x.x-benchmark   # Version de mesure de performance
+```
+
+### **📋 RÈGLES DE TAGGING**
+```bash
+# Création d'un tag avec message descriptif
+git tag -a v1.1.0 -m "✨ Nouveau extracteur Issues GitLab + Export Power BI optimisé"
+git push origin v1.1.0
+
+# Tag de hotfix critique
+git tag -a v1.0.4-hotfix -m "🚨 HOTFIX: Correction token GitLab expiration"
+git push origin v1.0.4-hotfix
+
+# Tag de performance
+git tag -a v1.2.0-perf -m "🚀 PERFORMANCE: Réduction -15% temps d'exécution"
+git push origin v1.2.0-perf
+```
+
+---
+
+## 8. 🔧 VARIABLES D'ENVIRONNEMENT
+```bash
+---
+
+## 8. 🔧 VARIABLES D'ENVIRONNEMENT
 ```bash
 GITLAB_URL=https://gitlab.example.com
 GITLAB_TOKEN=glpat-xxxxxxxxxxxx
+```
+
+**🎯 En cas de doute: PURGER d'abord, optimiser ensuite !**
 ```
 
 **🎯 En cas de doute: PURGER d'abord, optimiser ensuite !**
