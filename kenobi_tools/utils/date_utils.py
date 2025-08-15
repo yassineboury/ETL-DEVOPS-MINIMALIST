@@ -8,7 +8,7 @@ Optimisés pour Power BI et exports Excel
 import pandas as pd
 from datetime import datetime, timedelta
 from typing import Union, Optional, Any, List
-from .constants import DATE_FORMAT_FRENCH
+from .constants import DATE_FORMAT_FRENCH, DATE_FORMAT_ISO_Z
 
 
 def format_date_for_powerbi(date_input: Union[str, datetime, pd.Timestamp, None]) -> str:
@@ -63,8 +63,7 @@ def format_date_for_powerbi(date_input: Union[str, datetime, pd.Timestamp, None]
         
         # Autres tentatives de parsing
         formats_to_try = [
-            "%Y-%m-%dT%H:%M:%S.%fZ",
-            "%Y-%m-%dT%H:%M:%SZ", 
+            DATE_FORMAT_ISO_Z,
             "%Y-%m-%d %H:%M:%S",
             "%Y-%m-%d",
             "%d/%m/%Y",
@@ -114,7 +113,7 @@ def format_gitlab_date(date_input: Optional[Union[str, datetime, Any]]) -> str:
             # Format avec microsecondes
             lambda d: datetime.strptime(d, "%Y-%m-%dT%H:%M:%S.%fZ"),
             # Format sans microsecondes
-            lambda d: datetime.strptime(d, "%Y-%m-%dT%H:%M:%SZ"),
+            lambda d: datetime.strptime(d, DATE_FORMAT_ISO_Z),
             # Format standard SQL
             lambda d: datetime.strptime(d, "%Y-%m-%d %H:%M:%S"),
             # Format date seule
@@ -241,7 +240,7 @@ def validate_date_format(date_str: str) -> bool:
 
 # Constantes utiles
 DATE_FORMAT_DISPLAY = DATE_FORMAT_FRENCH
-DATE_FORMAT_ISO = "%Y-%m-%dT%H:%M:%SZ"
+DATE_FORMAT_ISO = DATE_FORMAT_ISO_Z
 
 # Patterns courants pour identifier les colonnes de dates
 COMMON_DATE_PATTERNS = [

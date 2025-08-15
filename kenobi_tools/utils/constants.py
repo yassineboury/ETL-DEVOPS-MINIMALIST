@@ -6,6 +6,7 @@ Identifiées par SonarCloud pour améliorer la maintenabilité
 
 # Formats de date standardisés
 DATE_FORMAT_FRENCH = "%d/%m/%Y %H:%M:%S"
+DATE_FORMAT_ISO_Z = "%Y-%m-%dT%H:%M:%SZ"
 
 # Chemins d'export
 EXPORTS_GITLAB_PATH = "exports/gitlab"
