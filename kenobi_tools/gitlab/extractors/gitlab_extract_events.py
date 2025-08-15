@@ -13,6 +13,10 @@ import gitlab as python_gitlab
 from pathlib import Path
 
 # Imports locaux - méthode simplifiée
+try:
+    from kenobi_tools.utils.constants import EXPORTS_GITLAB_PATH
+except ImportError:
+    EXPORTS_GITLAB_PATH = "exports/gitlab"
 def format_gitlab_date(date_str):
     """Format GitLab date string for display"""
     if not date_str:
@@ -326,15 +330,15 @@ def main():
                 filename="gitlab_events.xlsx",
                 sheet_name="Gitlab Events",
                 column_mapping=excel_columns,
-                exports_dir="exports/gitlab",
+                exports_dir=EXPORTS_GITLAB_PATH,
                 auto_adjust_columns=True
             )
             filename = filepath
         else:
             # Fallback: export Excel simple
             import os
-            os.makedirs("exports/gitlab", exist_ok=True)
-            filename = os.path.join("exports/gitlab", "gitlab_events.xlsx")
+            os.makedirs(EXPORTS_GITLAB_PATH, exist_ok=True)
+            filename = os.path.join(EXPORTS_GITLAB_PATH, "gitlab_events.xlsx")
             
             # Sélectionner et renommer les colonnes
             available_columns = [col for col in excel_columns.keys() if col in df_all_events.columns]

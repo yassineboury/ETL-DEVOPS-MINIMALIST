@@ -9,8 +9,15 @@ import os
 from typing import Dict, Any, Optional
 import pandas as pd
 from openpyxl import Workbook
-from openpyxl.styles import Font, PatternFill, Alignment
+from openpyxl.styles import Font, Alignment, PatternFill, Border, Side
 from openpyxl.utils.dataframe import dataframe_to_rows
+from openpyxl.chart import BarChart, Reference
+import pandas as pd
+import os
+from datetime import datetime
+from typing import List, Dict, Any, Optional, Union
+from .date_utils import format_date_columns
+from .constants import EXPORTS_GITLAB_PATH
 from openpyxl.utils import get_column_letter
 
 
@@ -110,7 +117,7 @@ def export_dataframe_to_excel_light(
     filename: str,
     sheet_name: str = "Data",
     column_mapping: Optional[Dict[str, str]] = None,
-    exports_dir: str = "exports/gitlab",
+    exports_dir: str = EXPORTS_GITLAB_PATH,
     auto_adjust_columns: bool = True
 ) -> str:
     """
@@ -223,7 +230,7 @@ def get_standard_formatting_options() -> Dict[str, Any]:
 
 
 # Constantes pour l'uniformisation
-STANDARD_EXPORTS_DIR = "exports/gitlab"  # Répertoire spécifique GitLab
+STANDARD_EXPORTS_DIR = EXPORTS_GITLAB_PATH  # Répertoire spécifique GitLab
 STANDARD_HEADER_COLOR = "366092"
 STANDARD_HEADER_FONT_COLOR = "FFFFFF"
 STANDARD_CONTENT_ALIGNMENT = "left"  # Alignement à gauche par défaut

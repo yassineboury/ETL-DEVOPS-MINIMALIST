@@ -1,13 +1,88 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 """
-Utilitaires pour le traitement des dates GitLab
-Module centralisé pour le formatage et la manipulation des dates
+Utilitaires pour la gestion des dates et formats français
+Optimisés pour Power BI et exports Excel
 """
 
-from typing import Optional, Union, Any, List
-from datetime import datetime
 import pandas as pd
+from datetime import datetime, timedelta
+from typing import Union, Optional, Any, List
+from .constants import DATE_FORMAT_FRENCH
+
+
+def format_date_for_powerbi(date_input: Union[str, datetime, pd.Timestamp, None]) -> str:
+    """
+    Convertit une date en format français DD/MM/YYYY HH:MM:SS pour Power BI
+    
+    Args:
+        date_input: Date à formater (str, datetime, pd.Timestamp ou None)
+    
+    Returns:
+        str: Date formatée en français ou "N/A" si invalide
+    
+    Examples:
+        >>> format_date_for_powerbi("2025-08-15T14:30:00Z")
+        "15/08/2025 14:30:00"
+    """
+    
+    try:
+        # Si c'est déjà un objet datetime
+        if isinstance(date_input, datetime):
+            return date_input.strftime(DATE_FORMAT_FRENCH)
+        
+        # Si c'est un pd.Timestamp
+        if isinstance(date_input, pd.Timestamp):
+            return date_input.strftime(DATE_FORMAT_FRENCH)
+            
+        # Si c'est None ou vide
+        if not date_input or str(date_input).strip() == '':
+            return "N/A"
+            
+        # Convertir en string et nettoyer
+        date_str = str(date_input).strip()
+        
+        # Si c'est déjà au bon format, vérifier et retourner
+        if validate_date_format(date_str):
+            return date_str
+        
+        # Essayer de parser depuis différents formats ISO
+        try:
+            # Format ISO avec Z
+            if date_str.endswith('Z'):
+                dt = datetime.fromisoformat(date_str.replace('Z', '+00:00'))
+                return dt.strftime(DATE_FORMAT_FRENCH)
+            
+            # Format ISO sans Z
+            if 'T' in date_str:
+                dt = datetime.fromisoformat(date_str)
+                return dt.strftime(DATE_FORMAT_FRENCH)
+                
+        except ValueError:
+            pass
+        
+        # Autres tentatives de parsing
+        formats_to_try = [
+            "%Y-%m-%dT%H:%M:%S.%fZ",
+            "%Y-%m-%dT%H:%M:%SZ", 
+            "%Y-%m-%d %H:%M:%S",
+            "%Y-%m-%d",
+            "%d/%m/%Y",
+            "%d-%m-%Y"
+        ]
+        
+        for fmt in formats_to_try:
+            try:
+                dt = datetime.strptime(date_str, fmt)
+                return dt.strftime(DATE_FORMAT_FRENCH)
+            except ValueError:
+                continue
+                
+        # Si aucun format ne fonctionne
+        return "N/A"
+        
+    except Exception:
+        return "N/A"
 
 
 def format_gitlab_date(date_input: Optional[Union[str, datetime, Any]]) -> str:
@@ -24,10 +99,6 @@ def format_gitlab_date(date_input: Optional[Union[str, datetime, Any]]) -> str:
         return "N/A"
     
     try:
-        # Si c'est déjà un objet datetime
-        if isinstance(date_input, datetime):
-            return date_input.strftime("%d/%m/%Y %H:%M:%S")
-        
         # Convertir en string pour traitement
         date_str = str(date_input).strip()
         
@@ -54,7 +125,7 @@ def format_gitlab_date(date_input: Optional[Union[str, datetime, Any]]) -> str:
         for format_func in formats_to_try:
             try:
                 dt = format_func(date_str)
-                return dt.strftime("%d/%m/%Y %H:%M:%S")
+                return dt.strftime(DATE_FORMAT_FRENCH)
             except (ValueError, TypeError):
                 continue
         
@@ -162,14 +233,14 @@ def validate_date_format(date_str: str) -> bool:
         return True  # N/A est acceptable
     
     try:
-        datetime.strptime(date_str, "%d/%m/%Y %H:%M:%S")
+        datetime.strptime(date_str, DATE_FORMAT_FRENCH)
         return True
     except (ValueError, TypeError):
         return False
 
 
 # Constantes utiles
-DATE_FORMAT_DISPLAY = "%d/%m/%Y %H:%M:%S"
+DATE_FORMAT_DISPLAY = DATE_FORMAT_FRENCH
 DATE_FORMAT_ISO = "%Y-%m-%dT%H:%M:%SZ"
 
 # Patterns courants pour identifier les colonnes de dates

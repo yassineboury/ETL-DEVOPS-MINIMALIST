@@ -7,6 +7,7 @@ from typing import Any, Dict, Optional
 
 import gitlab as python_gitlab
 import pandas as pd
+from ...utils.constants import STATUS_YES, STATUS_NO
 
 
 def _format_date(date_string: Optional[str]) -> str:
@@ -171,7 +172,7 @@ def _get_dominant_language(project) -> str:
             dominant_language = max(languages.items(), key=lambda x: x[1])
             return dominant_language[0]
             
-    except Exception as e:
+    except Exception:
         # En cas d'erreur d'API ou d'accès, ignorer silencieusement
         pass
         
@@ -205,7 +206,7 @@ def _build_project_info(project) -> Dict[str, Any]:
         'dernier_commit': last_commit_date,
         'langage_principal': _get_dominant_language(project),
         'etat': _determine_project_state(project),
-        'archivé': "Oui" if is_archived else "Non",
+        'archivé': STATUS_YES if is_archived else STATUS_NO,
         'vide': _is_empty_project(project),
     }
 
