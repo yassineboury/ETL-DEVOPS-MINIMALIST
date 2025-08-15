@@ -1,17 +1,66 @@
 ---
 applyTo: '**'
 ---
-# 🎯 RÉFÉRENCE CLAUDE - ETL SIMPLE & EFFICACE
+# 🎯 RÉFÉRENCE CLAUDE - ETL DEVOPS OPTIMISÉ
 
-**Version :** 2.0  
+**Version :** 3.0 - SONARCLOUD READY  
 **Date :** 15/08/2025  
-**Objectif :** ETL personnel GitLab → Excel → Power BI
+**Objectif :** ETL personnel GitLab → Excel → Power BI + Qualité Code SonarCloud A+
+
+---
+
+## 🏆 STANDARDS QUALITÉ CODE SONARCLOUD (OBLIGATOIRES)
+
+### **🎯 Métriques de Complexité - LIMITES ABSOLUES**
+```python
+# RÈGLES SONARCLOUD STRICTES
+- Complexité Cyclomatique par fonction: MAX 10
+- Complexité Cognitive par fonction: MAX 15  
+- Lignes par fonction: MAX 50
+- Lignes par classe: MAX 300
+- Lignes par fichier: MAX 200 (optimal)
+- Code Duplication: 0% toléré
+```
+
+### **🏗️ Architecture Modulaire OBLIGATOIRE**
+```python
+# SÉPARATION DES RESPONSABILITÉS
+class ExampleProcessor:
+    """Une classe = une responsabilité uniquement"""
+    
+    @staticmethod  # Préférer les méthodes statiques
+    def process_single_item(item):  # Fonctions courtes et spécifiques
+        """MAX 50 lignes par fonction"""
+        return ProcessedItem()
+    
+    def _helper_method(self):  # Extraire les helpers privés
+        """Complexité cognitive < 15"""
+        pass
+```
+
+### **📦 Modularité par Extraction de Classes**
+```python
+# AVANT (complexité 50+)
+def complex_function():
+    # 200 lignes de code...
+    pass
+
+# APRÈS (complexité < 10 chacune)
+class DataProcessor:
+    def extract(self): pass
+    
+class DataValidator:  
+    def validate(self): pass
+    
+class DataFormatter:
+    def format(self): pass
+```
 
 ---
 
 ## 1. 🚀 SETUP RAPIDE
 
-### **� Dépendances Obligatoires**
+### **📦 Dépendances Obligatoires**
 ```python
 # requirements.txt essentiels
 pandas>=2.0.0
@@ -20,17 +69,30 @@ python-gitlab>=4.0.0
 python-dotenv>=1.0.0
 ```
 
-### **📂 Structure Projet**
+### **📂 Architecture Projet REFACTORISÉE**
 ```
 ETL DevSecOps Minimalist/
-├── maestro_kenobi.py              # Point d'entrée
-├── kenobi_tools/gitlab/           # Outils GitLab
-│   ├── client/, extractors/, exporters/
-├── exports/                       # Fichiers Excel
-└── .env                          # GITLAB_TOKEN=xxx
+├── maestro_kenobi.py              # Point d'entrée (185 lignes MAX)
+├── kenobi_tools/
+│   ├── ui/                        # Interface utilisateur
+│   │   └── menu_components.py     # Composants de menu
+│   ├── processing/                # Logique métier
+│   │   └── extraction_processor.py
+│   ├── gitlab/                    # Modules GitLab
+│   │   ├── client/               # Connexion (modulaire)
+│   │   │   ├── gitlab_client.py   # Client principal
+│   │   │   ├── gitlab_validator.py # Validation
+│   │   │   └── config_manager.py  # Configuration
+│   │   ├── extractors/           # Extraction (spécialisée)
+│   │   └── exporters/            # Export Excel
+│   └── utils/                    # Utilitaires (simplifiés)
+│       ├── user_formatter.py     # Formatage utilisateurs
+│       ├── user_classifier.py    # Classification
+│       ├── date_utils.py         # Dates (112 lignes)
+│       └── excel_utils.py        # Excel (123 lignes)
+├── exports/                      # Fichiers Excel
+└── .env                         # GITLAB_TOKEN=xxx
 ```
-
----
 
 ## 2. 📊 STANDARDS POWER BI (OBLIGATOIRES)
 
