@@ -115,7 +115,7 @@ def extract_events_by_project(
         events_data = []
         events_count = 0
         
-        print(f"📊 Récupération: TOUS les événements")
+        print("📊 Récupération: TOUS les événements")
         if max_projects:
             print(f"📁 Limite projets: {max_projects} projets maximum")
         if after_date:
@@ -160,7 +160,7 @@ def extract_events_by_project(
                 project_events = project.events.list(all=True, **event_params)
                 
                 if not project_events:
-                    print(f"   📭 Aucun événement trouvé")
+                    print("   📭 Aucun événement trouvé")
                     continue
                 
                 print(f"   📄 {len(project_events)} événements trouvés")
@@ -268,9 +268,9 @@ def main():
         # Choix de la période
         after_date, before_date, period_desc = get_date_filter_choice()
         
-        print(f"\n📊 Configuration:")
+        print("\n📊 Configuration:")
         print(f"   Période: {period_desc}")
-        print(f"   Événements: TOUS (sans limite)")
+        print("   Événements: TOUS (sans limite)")
         if max_projects:
             print(f"   Projets: {max_projects} projets maximum")
         
@@ -294,7 +294,7 @@ def main():
         print(f"   Actions principales: {', '.join([f'{action} ({count})' for action, count in top_actions.items()])}")
         
         # Préparer les données pour Excel
-        print(f"📁 Export vers Excel...")
+        print("📁 Export vers Excel...")
         
         # Préparer toutes les colonnes
         df_all_events = df_events.copy()
@@ -321,7 +321,7 @@ def main():
         }
         
         # Export vers Excel avec formatage minimal (optimisé gros volumes)
-        print(f"� Export vers Excel...")
+        print("📁 Export vers Excel...")
         
         if EXCEL_UTILS_AVAILABLE and export_dataframe_to_excel_light is not None:
             # Utiliser les utilitaires Excel optimisés
@@ -349,7 +349,7 @@ def main():
             with pd.ExcelWriter(filename, engine='openpyxl') as writer:
                 df_for_export.to_excel(writer, sheet_name='Gitlab Events', index=False)
         
-        print(f"\n✅ Export terminé!")
+        print("\n✅ Export terminé!")
         print(f"📁 Fichier: {filename}")
         print(f"📊 {len(df_all_events)} événements • {df_events['project_id'].nunique() if 'project_id' in df_events.columns else 'N/A'} projets")
         

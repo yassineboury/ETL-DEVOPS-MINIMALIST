@@ -104,7 +104,7 @@ def auto_adjust_column_widths(worksheet, max_width: int = 50, min_width: int = 1
                     length = len(str(cell.value))
                     if length > max_length:
                         max_length = length
-            except:
+            except (AttributeError, TypeError, ValueError):
                 pass
         
         # Calculer la largeur ajustée
@@ -170,7 +170,7 @@ def export_dataframe_to_excel_light(
             size_mb = os.path.getsize(filepath) / 1024 / 1024
             print(f"✅ Fichier Excel créé: {size_mb:.1f} MB")
         else:
-            print(f"❌ Erreur: fichier Excel vide ou non créé")
+            print("❌ Erreur: fichier Excel vide ou non créé")
             
     except Exception as e:
         print(f"❌ Erreur lors de la création du fichier Excel: {e}")
@@ -206,7 +206,7 @@ def auto_adjust_column_widths_light(worksheet, max_width: int = 50, min_width: i
                     length = len(str(cell_value))
                     if length > max_length:
                         max_length = length
-            except:
+            except (AttributeError, TypeError, ValueError):
                 pass
         
         # Calculer la largeur ajustée
