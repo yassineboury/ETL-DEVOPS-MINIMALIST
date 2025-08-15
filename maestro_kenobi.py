@@ -81,12 +81,11 @@ class MaestroKenobiOrchestrator:
         
         # Phase 1: Données de base
         print("\n🚀 Début de l'extraction complète...")
-        success &= self.processor.process_base_data(self.gitlab_client, self.exports_dir)
-        success &= self.processor.export_base_data(self.exports_dir)
+        success = self.processor.process_all_data(self.exports_dir)
 
-        # Phase 2: Événements (si configuré)
+        # Phase 2: Événements (si configuré)  
         if events_config and success:
-            success &= self.processor.process_events_data(self.gl, self.exports_dir, events_config)
+            success &= self.processor.process_events_extraction()
 
         return self._finalize_extraction(success)
 
@@ -99,14 +98,11 @@ class MaestroKenobiOrchestrator:
 
         # Données de base (toujours incluses)
         if config["include_base"]:
-            success &= self.processor.process_base_data(self.gitlab_client, self.exports_dir)
-            success &= self.processor.export_base_data(self.exports_dir)
+            success = self.processor.process_all_data(self.exports_dir)
 
         # Événements (si demandés)
         if config["include_events"] and config["events_config"] and success:
-            success &= self.processor.process_events_data(
-                self.gl, self.exports_dir, config["events_config"]
-            )
+            success &= self.processor.process_events_extraction()
 
         return self._finalize_extraction(success)
 
@@ -131,31 +127,16 @@ class MaestroKenobiOrchestrator:
     def _finalize_extraction(self, success: bool) -> bool:
         """Finalise l'extraction et affiche le résumé"""
         if success:
-            summary = self.processor.get_extraction_summary()
-            self._display_success_summary(summary)
+            print("\n" + "=" * 60)
+            print("🎭 MAESTRO KENOBI - EXTRACTION TERMINÉE AVEC SUCCÈS !")
+            print("=" * 60)
+            print("\n✅ Toutes les données ont été extraites et exportées")
+            print(f"📁 Fichiers disponibles dans: {self.exports_dir}")
+            print("\n🎯 Prêt pour import dans Power BI !")
             return True
         else:
             print("\n❌ Extraction échouée - Vérifiez les logs ci-dessus")
             return False
-
-    def _display_success_summary(self, summary: Dict[str, Any]):
-        """Affiche le résumé de succès"""
-        print("\n" + "=" * 60)
-        print("🎭 MAESTRO KENOBI - EXTRACTION TERMINÉE AVEC SUCCÈS !")
-        print("=" * 60)
-        
-        print(f"\n📊 Données extraites: {', '.join(summary['extracted_data_keys'])}")
-        print(f"📁 Fichiers créés: {summary['total_files']}")
-        
-        if summary['created_files']:
-            print("\n📋 Fichiers générés:")
-            for file_path in summary['created_files']:
-                file_name = Path(file_path).name
-                print(f"   • {file_name}")
-        
-        print(f"\n📂 Répertoire: {self.exports_dir}")
-        print("\n🎯 Prêt pour import dans Power BI !")
-
 
 def main():
     """Fonction principale"""
