@@ -7,6 +7,7 @@ import sys
 import warnings
 from pathlib import Path
 from typing import Any, Dict, Optional
+from urllib.parse import urlparse
 
 import gitlab as python_gitlab
 
@@ -137,10 +138,35 @@ class GitLabClient:
         print(f"🔗 Connexion à GitLab: {gitlab_url}")
 
         # Créer le client avec vérification SSL désactivée pour les instances internes
-        if "oncf.net" in gitlab_url.lower() or "localhost" in gitlab_url.lower():
-            print("⚠️ Désactivation de la vérification SSL pour instance interne")
-            return python_gitlab.Gitlab(gitlab_url, private_token=gitlab_token, ssl_verify=False)
-        else:
+        # Validation sécurisée de l'URL avec parsing approprié
+        try:
+            parsed_url = urlparse(gitlab_url)
+            hostname = parsed_url.hostname
+            
+            # Liste blanche des domaines autorisés pour SSL désactivé
+            internal_domains = [
+                "oncf.net",
+                "localhost"
+            ]
+            
+            # Vérification sécurisée : domaine exact ou sous-domaine valide
+            is_internal = False
+            if hostname:
+                hostname_lower = hostname.lower()
+                for domain in internal_domains:
+                    if hostname_lower == domain or hostname_lower.endswith("." + domain):
+                        is_internal = True
+                        break
+            
+            if is_internal:
+                print("⚠️ Désactivation de la vérification SSL pour instance interne")
+                return python_gitlab.Gitlab(gitlab_url, private_token=gitlab_token, ssl_verify=False)
+            else:
+                return python_gitlab.Gitlab(gitlab_url, private_token=gitlab_token)
+                
+        except Exception as e:
+            print(f"⚠️ Erreur lors du parsing de l'URL: {e}")
+            # En cas d'erreur de parsing, utiliser SSL par défaut (sécurité)
             return python_gitlab.Gitlab(gitlab_url, private_token=gitlab_token)
 
     def _test_connection(self, gitlab_url: str) -> None:
