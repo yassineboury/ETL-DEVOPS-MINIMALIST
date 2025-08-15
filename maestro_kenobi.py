@@ -43,9 +43,7 @@ class MaestroKenobiOrchestrator:
     NO_GITLAB_CONNECTION = "❌ Pas de connexion GitLab active"
     INVALID_CHOICE_MESSAGE = "❌ Répondez par 'o' (oui) ou 'n' (non)"
 
-    # UI constants pour les tableaux
-    BORDER_LONG = "│                                                     │"
-    BORDER_MEDIUM = "│                                                  │"
+    # UI constants pour les tableaux (simplifiés)
 
     # Configuration des périodes d'événements
     EVENT_PERIODS = {
@@ -93,73 +91,62 @@ class MaestroKenobiOrchestrator:
         self.main_progress = None
 
     def show_welcome_banner(self):
-        """Bannière d'accueil vraiment minimaliste"""
-        print("\n" + "=" * 50)
-        print("          MAESTRO KENOBI")
-        print("          DevSecOps KPIs")
-        print("=" * 50)
-        print(f"🕒 {datetime.now().strftime('%d/%m/%Y à %H:%M:%S')}")
-        print("⚡ Orchestrateur intelligent")
-        print("🎯 GitLab Data Extraction")
-        print("=" * 50)
+        """Bannière d'accueil moderne sans bordures"""
+        print("\n\n")
+        print("           🎭 MAESTRO KENOBI")
+        print("        GitLab DevSecOps Engine")
+        print("")
+        print(f"    🕒 {datetime.now().strftime('%d/%m/%Y à %H:%M:%S')}  ⚡ v2.0  🎯 Ready")
+        print("    " + "─" * 45)
+        print("\n\n")
 
     def show_main_menu(self) -> str:
-        """Menu principal vraiment minimaliste"""
-        print("\n\n\n" + "=" * 50)
-        print("         CHOIX D'EXTRACTION")
-        print("=" * 50)
+        """Menu principal fluide sans bordures"""
+        print("           MODES D'EXTRACTION")
+        print("    " + "─" * 35)
+        print("\n")
 
-        print("1️⃣  MODE COMPLET")
-        print("   → Utilisateurs + Groupes + Projets")
-        print("   → Evenements avec choix periode")
-        print("   → Export Excel optimise")
-        print("   → Duree: 5-20 min selon periode")
+        print("    🚀 MODE COMPLET                    [Recommandé]")
+        print("       ├─ 👥 Utilisateurs & Groupes")
+        print("       ├─ 📁 Projets (actifs + archivés)")
+        print("       ├─ 📊 Événements avec période configurable")
+        print("       └─ ⏱️  Durée: 5-20 minutes")
+        print("\n")
 
-        print("\n2️⃣  MODE PERSONNALISE")
-        print("   → Selection modulaire par famille")
-        print("   → Controle fin des extracteurs")
-        print("   → Options avancees")
-        print("   → Duree: Variable selon selection")
-
-        print("=" * 50)
+        print("    ⚙️  MODE PERSONNALISÉ                  [Avancé]")
+        print("       ├─ 🎛️  Sélection modulaire des données")
+        print("       ├─ 🔧 Contrôle fin des extracteurs")
+        print("       └─ ⏱️  Durée: Variable selon sélection")
+        print("\n")
+        print("    " + "─" * 43)
+        print("")
 
         while True:
-            choice = input("\n🎯 Votre choix (1 ou 2) ► ").strip()
+            choice = input("\n    🎯 Votre choix (1 ou 2) ► ").strip()
             if choice in ["1", "2"]:
                 return choice
-            print("❌ Choix invalide, veuillez saisir 1 ou 2")
+            print("    ❌ Choix invalide, veuillez saisir 1 ou 2")
 
     def show_events_period_menu(self) -> Dict[str, Any] | None:
-        """Menu de choix de période avec design cohérent"""
+        """Menu de choix de période simplifié"""
         print("\n")
-        print("┌" + "─" * 55 + "┐")
-        print("│" + "       PÉRIODE DES ÉVÉNEMENTS GITLAB".center(55) + "│")
-        print("├" + "─" * 55 + "┤")
-        print(self.BORDER_LONG)
-        print("│  📅 1. 30 derniers jours                           │")
-        print("│     • Durée estimée: 2-5 minutes                   │")
-        print("│     • Volume: Moyen                                │")
-        print(self.BORDER_LONG)
-        print("│  📅 2. 3 derniers mois                             │")
-        print("│     • Durée estimée: 5-10 minutes                  │")
-        print("│     • Volume: Important                            │")
-        print(self.BORDER_LONG)
-        print("│  📅 3. Année " + str(datetime.now().year) + "                                  │")
-        print("│     • Durée estimée: 10-15 minutes                 │")
-        print("│     • Volume: Très important                       │")
-        print(self.BORDER_LONG)
-        print("│  📅 4. Tous les événements                         │")
-        print("│     • Durée estimée: 15-30 minutes                 │")
-        print("│     • Volume: Maximum                              │")
-        print(self.BORDER_LONG)
-        print("└" + "─" * 55 + "┘")
+        print("       📅 PÉRIODE DES ÉVÉNEMENTS GITLAB")
+        print("    " + "─" * 35)
+        print("")
+        print("    1️⃣ Les 30 derniers jours")
+        print("    2️⃣ Les 3 derniers mois")
+        print("    3️⃣ Année " + str(datetime.now().year))
+        print("    4️⃣ Tous les événements disponibles")
+        print("")
+        print("    " + "─" * 43)
+        print("")
 
         while True:
-            choice = input("\n🎯 Votre choix de période (1-4) ► ").strip()
+            choice = input("\n    🎯 Votre choix de période (1-4) ► ").strip()
             if choice in self.EVENT_PERIODS:
                 config = self.EVENT_PERIODS[choice]
                 after_date = config["after_date"]() if config["after_date"] else None
-                print(f"\n✅ Période sélectionnée: {config['name']}")
+                print(f"\n    ✅ Période sélectionnée: {config['name']}")
                 return {
                     "name": config["name"],
                     "after_date": after_date,
@@ -168,26 +155,25 @@ class MaestroKenobiOrchestrator:
             print("❌ Choix invalide, veuillez saisir 1, 2, 3 ou 4")
 
     def show_custom_menu(self) -> Dict[str, Any]:
-        """Menu personnalisé avec interface élégante"""
+        """Menu personnalisé fluide sans bordures"""
         print("\n")
-        print("┌" + "─" * 55 + "┐")
-        print("│" + "            MODE PERSONNALISÉ".center(55) + "│")
-        print("├" + "─" * 55 + "┤")
-        print(self.BORDER_LONG)
-        print("│  📊 DONNÉES DE BASE (obligatoires)                 │")
-        print("│     • 👥 Utilisateurs GitLab (~30s)                │")
-        print("│     • 🏢 Groupes et sous-groupes (~20s)            │")
-        print("│     • 📁 Projets actifs + archivés (~45s)          │")
-        print(self.BORDER_LONG)
-        print("│  📈 DONNÉES D'ACTIVITÉ (optionnelles)              │")
-        print("│     • 🔄 Événements GitLab (2-30min)               │")
-        print("│       Push, merge, issues, commentaires...         │")
-        print(self.BORDER_LONG)
-        print("└" + "─" * 55 + "┘")
+        print("            MODE PERSONNALISÉ")
+        print("    " + "─" * 30)
+        print("\n")
+        print("    📊 DONNÉES DE BASE (obligatoires)")
+        print("       • 👥 Utilisateurs GitLab (~30s)")
+        print("       • 🏢 Groupes et sous-groupes (~20s)")
+        print("       • 📁 Projets actifs + archivés (~45s)")
+        print("\n")
+        print("    📈 DONNÉES D'ACTIVITÉ (optionnelles)")
+        print("       • 🔄 Événements GitLab (2-30min)")
+        print("         Push, merge, issues, commentaires...")
+        print("\n")
 
         # Choix avec confirmation visuelle
-        print("\n🎯 Configuration:")
-        print("  ✅ Données de base: Incluses automatiquement")
+        print("    🎯 Configuration:")
+        print("       ✅ Données de base: Incluses automatiquement")
+        print("")
 
         while True:
             events_choice = input("\n📈 Inclure les événements ? (o/n) ► ").strip().lower()
@@ -222,44 +208,43 @@ class MaestroKenobiOrchestrator:
             return self.run_custom_mode()
 
     def run_complete_mode(self) -> bool:
-        """Mode complet avec affichage élégant des étapes"""
-        print("\n")
-        print("┌" + "─" * 50 + "┐")
-        print("│" + "🚀 MODE COMPLET SÉLECTIONNÉ".center(50) + "│")
-        print("└" + "─" * 50 + "┘")
+        """Mode complet avec affichage épuré des étapes"""
+        print("\n\n")
+        print("        🚀 MODE COMPLET SÉLECTIONNÉ")
+        print("    " + "─" * 35)
+        print("")
 
         # Étape 1: Choix de période pour les événements
-        print("\n📋 Étape 1/3: Configuration")
+        print("    📋 Étape 1/3: Configuration")
         events_config = self.show_events_period_menu()
 
         # Étape 2: Affichage du récapitulatif
-        print("\n📋 Étape 2/3: Récapitulatif")
-        print("┌" + "─" * 45 + "┐")
-        print("│" + "✅ Configuration choisie".center(45) + "│")
-        print("├" + "─" * 45 + "┤")
-        print("│                                             │")
-        print("│  📊 Données: Base + Activité               │")
-        print("│     • 👥 Utilisateurs                       │")
-        print("│     • 🏢 Groupes                            │")
-        print("│     • 📁 Projets (actifs + archivés)       │")
+        print("\n    📋 Étape 2/3: Récapitulatif")
+        print("        ✅ Configuration choisie")
+        print("    " + "─" * 30)
+        print("")
+        print("      📊 Données: Base + Activité")
+        print("         • 👥 Utilisateurs")
+        print("         • 🏢 Groupes")
+        print("         • 📁 Projets (actifs + archivés)")
         if events_config:
-            print(f"│     • 📅 Événements: {events_config['name']:<18} │")
+            print(f"         • 📅 Événements: {events_config['name']}")
         else:
-            print("│     • 📅 Événements: Non configuré       │")
-        print("│                                             │")
-        print("└" + "─" * 45 + "┘")
+            print("         • 📅 Événements: Non configuré")
+        print("\n")
 
         # Étape 3: Confirmation et lancement
-        print("\n📋 Étape 3/3: Confirmation")
+        print("    📋 Étape 3/3: Confirmation")
+        print("")
         while True:
-            confirm = input("🚀 Lancer l'extraction ? (o/n) ► ").strip().lower()
+            confirm = input("    🚀 Lancer l'extraction ? (o/n) ► ").strip().lower()
             if confirm in ["o", "oui", "y", "yes"]:
                 break
             elif confirm in ["n", "non", "no"]:
-                print("❌ Extraction annulée")
+                print("    ❌ Extraction annulée")
                 return False
             else:
-                print(self.INVALID_CHOICE_MESSAGE)
+                print(f"    {self.INVALID_CHOICE_MESSAGE}")
 
         # Lancer l'extraction complète
         if events_config is not None:
@@ -271,9 +256,8 @@ class MaestroKenobiOrchestrator:
     def run_custom_mode(self) -> bool:
         """Mode personnalisé avec étapes guidées"""
         print("\n")
-        print("┌" + "─" * 55 + "┐")
-        print("│" + "⚙️ MODE PERSONNALISÉ SÉLECTIONNÉ".center(55) + "│")
-        print("└" + "─" * 55 + "┘")
+        print("        ⚙️  MODE PERSONNALISÉ SÉLECTIONNÉ")
+        print("=" * 45)
 
         # Étape 1: Configuration personnalisée
         print("\n📋 Étape 1/3: Configuration personnalisée")
@@ -281,22 +265,20 @@ class MaestroKenobiOrchestrator:
 
         # Étape 2: Récapitulatif détaillé
         print("\n📋 Étape 2/3: Récapitulatif de votre sélection")
-        print("┌" + "─" * 50 + "┐")
-        print("│" + "✅ Configuration personnalisée".center(50) + "│")
-        print("├" + "─" * 50 + "┤")
-        print(self.BORDER_MEDIUM)
-        print("│  📊 Données de base: ✅ Incluses                │")
-        print("│     • 👥 Utilisateurs                            │")
-        print("│     • 🏢 Groupes                                 │")
-        print("│     • 📁 Projets                                 │")
-        print(self.BORDER_MEDIUM)
+        print("        ✅ Configuration personnalisée")
+        print("=" * 45)
+        print("")
+        print("  📊 Données de base: ✅ Incluses")
+        print("     • 👥 Utilisateurs")
+        print("     • 🏢 Groupes")
+        print("     • 📁 Projets")
+        print("")
         if config["include_events"]:
-            print("│  � Événements: ✅ Inclus                       │")
-            print(f"│     • 📅 Période: {config['events_config']['name']:<23} │")
+            print("  🔄 Événements: ✅ Inclus")
+            print(f"     • 📅 Période: {config['events_config']['name']}")
         else:
-            print("│  � Événements: ❌ Exclus                       │")
-        print(self.BORDER_MEDIUM)
-        print("└" + "─" * 50 + "┘")
+            print("  🔄 Événements: ❌ Exclus")
+        print("")
 
         # Étape 3: Confirmation
         print("\n📋 Étape 3/3: Confirmation finale")
@@ -313,15 +295,15 @@ class MaestroKenobiOrchestrator:
         return self.execute_custom_extraction(config)
 
     def execute_full_extraction(self, events_config: Dict[str, Any]) -> bool:
-        """Exécute l'extraction complète avec affichage élégant"""
+        """Exécute l'extraction complète avec affichage épuré"""
         print("\n")
-        print("🚀" + "═" * 56 + "🚀")
-        print("║" + "          DÉMARRAGE EXTRACTION COMPLÈTE          ".center(56) + "║")
-        print("🚀" + "═" * 56 + "🚀")
+        print("    🚀 DÉMARRAGE EXTRACTION COMPLÈTE")
+        print("    " + "─" * 40)
+        print("")
 
         try:
             # Étape 1/4: Connexion GitLab
-            print("\n⏳ Étape 1/4: Connexion GitLab...")
+            print("⏳ Étape 1/4: Connexion GitLab...")
             if not self._setup_gitlab_connection():
                 return False
             print("✅ Connexion établie avec succès")
@@ -346,23 +328,24 @@ class MaestroKenobiOrchestrator:
 
             # Succès final
             print("\n")
-            print("🎉" + "═" * 56 + "🎉")
-            print("║" + "          EXTRACTION COMPLÈTE RÉUSSIE!          ".center(56) + "║")
-            print("🎉" + "═" * 56 + "🎉")
+            print("    🎉 EXTRACTION COMPLÈTE RÉUSSIE!")
+            print("    " + "─" * 35)
+            print("")
 
             return True
 
         except Exception as e:
             print(f"\n❌ ERREUR: {e}")
-            print("🚨" + "═" * 56 + "🚨")
+            print("    🚨 Extraction échouée")
+            print("    " + "─" * 20)
             return False
 
     def execute_custom_extraction(self, config: Dict[str, Any]) -> bool:
-        """Exécute l'extraction personnalisée avec affichage élégant"""
+        """Exécute l'extraction personnalisée avec affichage épuré"""
         print("\n")
-        print("⚙️" + "═" * 56 + "⚙️")
-        print("║" + "        DÉMARRAGE EXTRACTION PERSONNALISÉE       ".center(56) + "║")
-        print("⚙️" + "═" * 56 + "⚙️")
+        print("    ⚙️ DÉMARRAGE EXTRACTION PERSONNALISÉE")
+        print("    " + "─" * 40)
+        print("")
 
         total_steps = 3 if config["include_events"] else 2
 
@@ -396,15 +379,16 @@ class MaestroKenobiOrchestrator:
 
             # Succès final
             print("\n")
-            print("🎉" + "═" * 56 + "🎉")
-            print("║" + "       EXTRACTION PERSONNALISÉE RÉUSSIE!        ".center(56) + "║")
-            print("🎉" + "═" * 56 + "🎉")
+            print("    🎉 EXTRACTION PERSONNALISÉE RÉUSSIE!")
+            print("    " + "─" * 38)
+            print("")
 
             return True
 
         except Exception as e:
             print(f"\n❌ ERREUR: {e}")
-            print("🚨" + "═" * 56 + "🚨")
+            print("    🚨 Extraction échouée")
+            print("    " + "─" * 20)
             return False
 
     def _setup_gitlab_connection(self) -> bool:
