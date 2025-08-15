@@ -2,7 +2,6 @@
 Exporteur Excel pour GitLab
 Module pour exporter les données GitLab vers Excel avec formatage
 """
-from datetime import datetime
 from pathlib import Path
 from typing import Any, Dict, Optional
 
@@ -18,6 +17,10 @@ METRIC_COLUMN_NAME = 'Métrique'
 class GitLabExcelExporter:
     """Classe pour exporter les données GitLab vers Excel avec formatage professionnel"""
 
+    # Constantes pour les colonnes répétées
+    DATE_CREATION_HEADER = 'Date Creation'
+    ID_PROJET_HEADER = 'id Projet'
+
     def __init__(self, export_dir: Optional[Path] = None):
         """
         Initialise l'exporteur
@@ -28,15 +31,15 @@ class GitLabExcelExporter:
                 if worksheet is not None:
                     self._apply_header_style(worksheet, len(df_renamed.columns))
                     self._auto_adjust_columns(worksheet)
-                    
+
                     # Appliquer l'alignement à gauche pour le contenu
                     self._apply_content_alignment(worksheet)
-                    
+
                     # Ajouter un filtre automatique sur les en-têtes
                     from openpyxl.utils import get_column_letter
                     max_col_letter = get_column_letter(worksheet.max_column)
                     worksheet.auto_filter.ref = f"A1:{max_col_letter}{worksheet.max_row}"
-                    
+
                     worksheet.freeze_panes = "A2"
 
             print(f"✅ Fichier groupes Excel créé: {file_path}")
@@ -89,62 +92,63 @@ class GitLabExcelExporter:
             worksheet: Feuille Excel
         """
         for column in worksheet.columns:
-            max_length = 0
             column_name = column[0].column_letter
-            
-            # Dictionnaire des largeurs minimales par type de colonne
-            min_widths = {
-                'id': 8,
-                'nom': 15,
-                'email': 25,
-                'username': 15,
-                'url': 30,
-                'date': 18,
-                'etat': 12,
-                'admin': 8,
-                'type': 12,
-                'langage': 15,
-                'namespace': 20,
-                'complet': 25
-            }
-            
-            # Identifier le type de colonne basé sur l'en-tête
             header = str(column[0].value).lower() if column[0].value else ""
-            min_width = 12  # Valeur par défaut
-            
-            # Déterminer la largeur minimale basée sur le type de colonne
-            for key, width in min_widths.items():
-                if key in header:
-                    min_width = width
-                    break
 
-            # Calculer la largeur maximale nécessaire
-            for cell in column:
-                try:
-                    cell_value = str(cell.value) if cell.value is not None else ""
-                    cell_length = len(cell_value)
-                    
-                    # Ajouter un peu d'espace pour les caractères larges et la mise en forme
-                    if cell_length > 0:
-                        # Bonus pour les URLs et emails
-                        if '@' in cell_value or 'http' in cell_value.lower():
-                            cell_length += 2
-                        # Bonus pour les dates
-                        elif '/' in cell_value and len(cell_value) > 8:
-                            cell_length += 1
-                    
-                    if cell_length > max_length:
-                        max_length = cell_length
-                        
-                except (AttributeError, ValueError, TypeError):
-                    pass
+            min_width = self._get_min_width_for_column(header)
+            max_length = self._calculate_max_column_length(column)
+            final_width = self._calculate_final_width(max_length, min_width)
 
-            # Ajuster la largeur finale
-            # - Minimum : basé sur le type de colonne
-            # - Ajout de marge : +3 pour l'espacement
-            # - Maximum : 60 pour éviter des colonnes trop larges
-            final_width = min(max(max_length + 3, min_width), 60)
             worksheet.column_dimensions[column_name].width = final_width
+
+    def _get_min_width_for_column(self, header: str) -> int:
+        """Détermine la largeur minimale basée sur le type de colonne"""
+        min_widths = {
+            'id': 8, 'nom': 15, 'email': 25, 'username': 15, 'url': 30,
+            'date': 18, 'etat': 12, 'admin': 8, 'type': 12,
+            'langage': 15, 'namespace': 20, 'complet': 25
+        }
+
+        for key, width in min_widths.items():
+            if key in header:
+                return width
+        return 12  # Valeur par défaut
+
+    def _calculate_max_column_length(self, column) -> int:
+        """Calcule la longueur maximale nécessaire pour une colonne"""
+        max_length = 0
+
+        for cell in column:
+            try:
+                cell_value = str(cell.value) if cell.value is not None else ""
+                cell_length = len(cell_value)
+
+                if cell_length > 0:
+                    cell_length += self._get_bonus_length(cell_value)
+
+                max_length = max(max_length, cell_length)
+
+            except (AttributeError, ValueError, TypeError):
+                pass
+
+        return max_length
+
+    def _get_bonus_length(self, cell_value: str) -> int:
+        """Calcule la longueur bonus basée sur le type de contenu"""
+        # Bonus pour les URLs et emails
+        if '@' in cell_value or 'http' in cell_value.lower():
+            return 2
+        # Bonus pour les dates
+        elif '/' in cell_value and len(cell_value) > 8:
+            return 1
+        return 0
+
+    def _calculate_final_width(self, max_length: int, min_width: int) -> int:
+        """Calcule la largeur finale de la colonne"""
+        # Minimum : basé sur le type de colonne
+        # Ajout de marge : +3 pour l'espacement
+        # Maximum : 60 pour éviter des colonnes trop larges
+        return min(max(max_length + 3, min_width), 60)
 
     def _apply_content_alignment(self, worksheet):
         """
@@ -154,14 +158,14 @@ class GitLabExcelExporter:
             worksheet: Feuille Excel
         """
         from openpyxl.styles import Alignment
-        
+
         # Alignement à gauche pour le contenu
         content_alignment = Alignment(horizontal="left", vertical="center")
-        
+
         # Appliquer l'alignement à toutes les cellules de données
         max_row = worksheet.max_row
         max_col = worksheet.max_column
-        
+
         # Parcourir toutes les cellules sauf la première ligne (en-têtes)
         for row_num in range(2, max_row + 1):
             for col_num in range(1, max_col + 1):
@@ -192,21 +196,21 @@ class GitLabExcelExporter:
             if 'date_creation' in df_users.columns:
                 # Convertir les dates pour un tri correct
                 df_sorted = df_users.copy()
-                
+
                 # Créer une colonne temporaire pour le tri
                 df_sorted['_temp_date'] = pd.to_datetime(
-                    df_sorted['date_creation'], 
-                    format='%d/%m/%Y %H:%M:%S', 
+                    df_sorted['date_creation'],
+                    format='%d/%m/%Y %H:%M:%S',
                     errors='coerce'
                 )
-                
+
                 # Trier par date (plus récent en premier = descending)
                 df_sorted = df_sorted.sort_values('_temp_date', ascending=False, na_position='last')
-                
+
                 # Supprimer la colonne temporaire
                 df_sorted = df_sorted.drop('_temp_date', axis=1)
-                
-                print(f"📅 Utilisateurs triés par date de création (plus récent en premier)")
+
+                print("📅 Utilisateurs triés par date de création (plus récent en premier)")
             else:
                 df_sorted = df_users
                 print("⚠️ Colonne 'date_creation' non trouvée, pas de tri")
@@ -216,42 +220,42 @@ class GitLabExcelExporter:
                 # Renommer les colonnes selon les spécifications
                 column_mapping = {
                     'id_utilisateur': 'id Utilisateur',
-                    'nom_utilisateur': 'Nom Utilisateur', 
+                    'nom_utilisateur': 'Nom Utilisateur',
                     'email': 'Email',
                     'nom_complet': 'Nom Complet',
                     'admin': 'Admin',
                     'etat': 'Etat',
                     'type_utilisateur': 'Type Utilisateur',
-                    'date_creation': 'Date Creation',
+                    'date_creation': self.DATE_CREATION_HEADER,
                     'date_validation': 'Date Validation',
                     'derniere_activite': 'Date Derniere Activite',
                     'derniere_connexion': 'Date Derniere Connexion'
                 }
-                
+
                 # Appliquer le renommage des colonnes
                 df_renamed = df_sorted.rename(columns=column_mapping)
-                
+
                 # UNE SEULE FEUILLE nommée "Gitlab Users"
                 df_renamed.to_excel(writer, sheet_name='Gitlab Users', index=False)
 
                 # Formatage et ajustement des colonnes
                 workbook = writer.book
                 worksheet = workbook['Gitlab Users']
-                
+
                 # Appliquer le formatage des en-têtes
                 self._apply_header_style(worksheet, len(df_renamed.columns))
-                
+
                 # Ajuster automatiquement les largeurs de colonnes
                 self._auto_adjust_columns(worksheet)
-                
+
                 # Appliquer l'alignement à gauche pour le contenu
                 self._apply_content_alignment(worksheet)
-                
+
                 # Ajouter un filtre automatique sur les en-têtes
                 from openpyxl.utils import get_column_letter
                 max_col_letter = get_column_letter(worksheet.max_column)
                 worksheet.auto_filter.ref = f"A1:{max_col_letter}{worksheet.max_row}"
-                
+
                 # Figer la première ligne
                 worksheet.freeze_panes = "A2"
 
@@ -286,13 +290,13 @@ class GitLabExcelExporter:
                 # Formatage et ajustement des colonnes
                 workbook = writer.book
                 worksheet = workbook['Événements']
-                
+
                 # Appliquer le formatage des en-têtes
                 self._apply_header_style(worksheet, len(df_events.columns))
-                
+
                 # Ajuster automatiquement les largeurs de colonnes
                 self._auto_adjust_columns(worksheet)
-                
+
                 # Figer la première ligne
                 worksheet.freeze_panes = "A2"
 
@@ -362,46 +366,11 @@ class GitLabExcelExporter:
 
             stats_data = []
 
-            # Statistiques générales
-            stats_data.append(['=== STATISTIQUES GÉNÉRALES ===', ''])
-            if original_count and original_count != len(df_events):
-                stats_data.append(['Nombre total d\'événements (original)', original_count])
-                stats_data.append(['Nombre d\'événements dans ce fichier', len(df_events)])
-                stats_data.append(['Note', f'Limité aux {len(df_events)} plus récents pour optimiser Excel'])
-            else:
-                stats_data.append(['Nombre total d\'événements', len(df_events)])
-
-            # Par type d'action
-            if 'nom_action' in df_events.columns:
-                action_counts = df_events['nom_action'].value_counts()
-                stats_data.append(['', ''])
-                stats_data.append(['=== PAR TYPE D\'ACTION ===', ''])
-                for action, count in action_counts.items():
-                    stats_data.append([action, count])
-
-            # Par type de cible
-            if 'type_cible' in df_events.columns:
-                target_counts = df_events['type_cible'].value_counts()
-                stats_data.append(['', ''])
-                stats_data.append(['=== PAR TYPE DE CIBLE ===', ''])
-                for target, count in target_counts.items():
-                    stats_data.append([target, count])
-
-            # Par projet (top 10)
-            if 'id_projet' in df_events.columns:
-                project_counts = df_events['id_projet'].value_counts().head(10)
-                stats_data.append(['', ''])
-                stats_data.append(['=== TOP 10 PROJETS ACTIFS ===', ''])
-                for project, count in project_counts.items():
-                    stats_data.append([f'Projet {project}', count])
-
-            # Par auteur (top 10)
-            if 'id_auteur' in df_events.columns:
-                author_counts = df_events['id_auteur'].value_counts().head(10)
-                stats_data.append(['', ''])
-                stats_data.append(['=== TOP 10 UTILISATEURS ACTIFS ===', ''])
-                for author, count in author_counts.items():
-                    stats_data.append([f'Utilisateur {author}', count])
+            self._add_general_statistics(stats_data, df_events, original_count)
+            self._add_action_statistics(stats_data, df_events)
+            self._add_target_statistics(stats_data, df_events)
+            self._add_project_statistics(stats_data, df_events)
+            self._add_author_statistics(stats_data, df_events)
 
             # Créer le DataFrame des statistiques
             stats_df = pd.DataFrame(stats_data, columns=[METRIC_COLUMN_NAME, 'Valeur'])
@@ -413,10 +382,55 @@ class GitLabExcelExporter:
             workbook = writer.book
             stats_worksheet = workbook['Statistiques']
             self._apply_header_style(stats_worksheet, 2)
-            self._auto_adjust_columns(stats_worksheet)
 
         except Exception as e:
-            print(f"⚠️ Erreur création statistiques: {e}")
+            print(f"⚠️ Erreur lors de l'ajout des statistiques d'événements: {e}")
+
+    def _add_general_statistics(self, stats_data: list, df_events: pd.DataFrame, original_count: int | None):
+        """Ajoute les statistiques générales"""
+        stats_data.append(['=== STATISTIQUES GÉNÉRALES ===', ''])
+        if original_count and original_count != len(df_events):
+            stats_data.append(['Nombre total d\'événements (original)', original_count])
+            stats_data.append(['Nombre d\'événements dans ce fichier', len(df_events)])
+            stats_data.append(['Note', f'Limité aux {len(df_events)} plus récents pour optimiser Excel'])
+        else:
+            stats_data.append(['Nombre total d\'événements', len(df_events)])
+
+    def _add_action_statistics(self, stats_data: list, df_events: pd.DataFrame):
+        """Ajoute les statistiques par type d'action"""
+        if 'nom_action' in df_events.columns:
+            action_counts = df_events['nom_action'].value_counts()
+            stats_data.append(['', ''])
+            stats_data.append(['=== PAR TYPE D\'ACTION ===', ''])
+            for action, count in action_counts.items():
+                stats_data.append([action, count])
+
+    def _add_target_statistics(self, stats_data: list, df_events: pd.DataFrame):
+        """Ajoute les statistiques par type de cible"""
+        if 'type_cible' in df_events.columns:
+            target_counts = df_events['type_cible'].value_counts()
+            stats_data.append(['', ''])
+            stats_data.append(['=== PAR TYPE DE CIBLE ===', ''])
+            for target, count in target_counts.items():
+                stats_data.append([target, count])
+
+    def _add_project_statistics(self, stats_data: list, df_events: pd.DataFrame):
+        """Ajoute les statistiques par projet (top 10)"""
+        if 'id_projet' in df_events.columns:
+            project_counts = df_events['id_projet'].value_counts().head(10)
+            stats_data.append(['', ''])
+            stats_data.append(['=== TOP 10 PROJETS ACTIFS ===', ''])
+            for project, count in project_counts.items():
+                stats_data.append([f'Projet {project}', count])
+
+    def _add_author_statistics(self, stats_data: list, df_events: pd.DataFrame):
+        """Ajoute les statistiques par auteur (top 10)"""
+        if 'id_auteur' in df_events.columns:
+            author_counts = df_events['id_auteur'].value_counts().head(10)
+            stats_data.append(['', ''])
+            stats_data.append(['=== TOP 10 UTILISATEURS ACTIFS ===', ''])
+            for author, count in author_counts.items():
+                stats_data.append([f'Utilisateur {author}', count])
 
     def export_merge_requests(
         self, df_mrs: pd.DataFrame, filename: str = "gitlab_merge_requests.xlsx"
@@ -546,7 +560,10 @@ class GitLabExcelExporter:
 # Fonctions utilitaires publiques
 
     def export_projects(
-        self, df_projects: pd.DataFrame, filename: str = "gitlab_projects.xlsx", sheet_name: str = "Gitlab Active Projects"
+        self,
+        df_projects: pd.DataFrame,
+        filename: str = "gitlab_projects.xlsx",
+        sheet_name: str = "Gitlab Active Projects"
     ) -> str:
         """
         Exporte les projets vers Excel
@@ -569,38 +586,38 @@ class GitLabExcelExporter:
 
             # Mapping et nettoyage des colonnes pour les projets
             column_mapping = {
-                'id_projet': 'id Projet',
+                'id_projet': self.ID_PROJET_HEADER,
                 'nom_projet': 'Nom Projet',
                 'nom_complet': 'Chemin Complet',
                 'namespace': 'Namespace',
                 'type_namespace': 'Type Namespace',
-                'date_creation': 'Date Creation',
+                'date_creation': self.DATE_CREATION_HEADER,
                 'derniere_activite': 'Date Derniere Activite',
                 'dernier_commit': 'Date Dernier Commit',
                 'langage_principal': 'Langage Principal',
                 'vide': 'Projet Vide'
             }
-            
+
             # Colonnes à supprimer
             columns_to_drop = ['url_web', 'etat', 'archivé']
-            
+
             # Supprimer les colonnes non désirées
             df_cleaned = df_projects.copy()
             existing_columns_to_drop = [col for col in columns_to_drop if col in df_cleaned.columns]
             if existing_columns_to_drop:
                 df_cleaned = df_cleaned.drop(columns=existing_columns_to_drop)
                 print(f"🗑️ Colonnes supprimées: {existing_columns_to_drop}")
-            
+
             # Renommer les colonnes selon le mapping
             df_renamed = df_cleaned.rename(columns=column_mapping)
-            
+
             # Trier par ID décroissant (du plus grand au plus petit)
-            if 'id Projet' in df_renamed.columns:
-                df_sorted = df_renamed.sort_values('id Projet', ascending=False)
-                print(f"📊 Projets triés par ID décroissant")
+            if self.ID_PROJET_HEADER in df_renamed.columns:
+                df_sorted = df_renamed.sort_values(self.ID_PROJET_HEADER, ascending=False)
+                print("📊 Projets triés par ID décroissant")
             else:
                 df_sorted = df_renamed
-                print("⚠️ Colonne 'id Projet' non trouvée, pas de tri")
+                print(f"⚠️ Colonne '{self.ID_PROJET_HEADER}' non trouvée, pas de tri")
 
             with pd.ExcelWriter(file_path, engine='openpyxl') as writer:
                 df_sorted.to_excel(writer, sheet_name=sheet_name, index=False)
@@ -610,15 +627,15 @@ class GitLabExcelExporter:
                 if worksheet is not None:
                     self._apply_header_style(worksheet, len(df_sorted.columns))
                     self._auto_adjust_columns(worksheet)
-                    
+
                     # Appliquer l'alignement à gauche pour le contenu
                     self._apply_content_alignment(worksheet)
-                    
+
                     # Ajouter un filtre automatique sur les en-têtes
                     from openpyxl.utils import get_column_letter
                     max_col_letter = get_column_letter(worksheet.max_column)
                     worksheet.auto_filter.ref = f"A1:{max_col_letter}{worksheet.max_row}"
-                    
+
                     worksheet.freeze_panes = "A2"
 
             print(f"✅ Fichier projets Excel créé: {file_path}")
@@ -654,7 +671,7 @@ class GitLabExcelExporter:
             # Trier les groupes par ID décroissant (plus récent en premier)
             if 'id' in df_groups.columns:
                 df_sorted = df_groups.sort_values('id', ascending=False)
-                print(f"🔢 Groupes triés par ID décroissant")
+                print("🔢 Groupes triés par ID décroissant")
             else:
                 df_sorted = df_groups
                 print("⚠️ Colonne 'id' non trouvée, pas de tri")
@@ -666,24 +683,24 @@ class GitLabExcelExporter:
                 'path': 'Chemin Groupe',
                 'full_name': 'Nom Complet Groupe',
                 'full_path': 'Chemin Complet Groupe',
-                'created_at': 'Date Creation',
+                'created_at': self.DATE_CREATION_HEADER,
                 'parent_id': 'id Parent',
                 'parent_name': 'Groupe Parent',
                 'projects_count': 'Nombre Projets',
                 'members_count': 'Nombre Membres',
                 'subgroups_count': 'Nombre Sous-Groupes'
             }
-            
+
             # Colonnes à supprimer pour les groupes
             columns_to_drop = ['description', 'visibility', 'web_url']
-            
+
             # Supprimer les colonnes non désirées
             df_cleaned = df_sorted.copy()
             existing_columns_to_drop = [col for col in columns_to_drop if col in df_cleaned.columns]
             if existing_columns_to_drop:
                 df_cleaned = df_cleaned.drop(columns=existing_columns_to_drop)
                 print(f"🗑️ Colonnes supprimées: {existing_columns_to_drop}")
-            
+
             # Renommer les colonnes selon le mapping
             df_renamed = df_cleaned.rename(columns=column_mapping)
 
@@ -695,15 +712,15 @@ class GitLabExcelExporter:
                 if worksheet is not None:
                     self._apply_header_style(worksheet, len(df_renamed.columns))
                     self._auto_adjust_columns(worksheet)
-                    
+
                     # Appliquer l'alignement à gauche pour le contenu
                     self._apply_content_alignment(worksheet)
-                    
+
                     # Ajouter un filtre automatique sur les en-têtes
                     from openpyxl.utils import get_column_letter
                     max_col_letter = get_column_letter(worksheet.max_column)
                     worksheet.auto_filter.ref = f"A1:{max_col_letter}{worksheet.max_row}"
-                    
+
                     worksheet.freeze_panes = "A2"
 
             print(f"✅ Fichier groupes Excel créé: {file_path}")
@@ -853,68 +870,21 @@ def _get_column_letter(column) -> Optional[str]:
     return None
 
 
-def _calculate_column_width(column) -> int:
-    """Calcule la largeur optimale d'une colonne avec intelligence"""
-    max_length = 0
-    
-    # Obtenir l'en-tête pour déterminer le type de colonne
-    header = str(column[0].value).lower() if column[0].value else ""
-    
-    # Largeurs minimales intelligentes par type de colonne
-    min_widths = {
-        'id': 8,
-        'nom': 15,
-        'email': 25,
-        'username': 15,
-        'url': 30,
-        'date': 18,
-        'etat': 12,
-        'admin': 8,
-        'type': 12,
-        'langage': 15,
-        'namespace': 20,
-        'complet': 25,
-        'description': 30
-    }
-    
-    # Déterminer la largeur minimale
-    min_width = 12
-    for key, width in min_widths.items():
-        if key in header:
-            min_width = width
-            break
-    
-    # Calculer la largeur maximale nécessaire
-    for cell in column:
-        try:
-            cell_value = str(cell.value) if cell.value is not None else ""
-            cell_length = len(cell_value)
-            
-            # Ajustements spéciaux pour certains types de données
-            if cell_length > 0:
-                # URLs et emails nécessitent plus d'espace
-                if '@' in cell_value or 'http' in cell_value.lower():
-                    cell_length += 2
-                # Dates ont besoin d'un peu plus d'espace
-                elif '/' in cell_value and len(cell_value) > 8:
-                    cell_length += 1
-            
-            if cell_length > max_length:
-                max_length = cell_length
-                
-        except Exception:
-            pass
-    
-    # Largeur finale : minimum basé sur le type, avec marge, maximum 60
-    return min(max(max_length + 3, min_width), 60)
-
-
 def _auto_adjust_columns(ws) -> None:
     """Auto-ajuste la largeur des colonnes"""
     for column in ws.columns:
         column_letter = _get_column_letter(column)
         if column_letter:
-            adjusted_width = _calculate_column_width(column)
+            # Calcul simple de la largeur
+            max_length = 0
+            for cell in column:
+                try:
+                    cell_value = str(cell.value) if cell.value is not None else ""
+                    max_length = max(max_length, len(cell_value))
+                except Exception:
+                    pass
+            # Largeur finale avec marge et limites
+            adjusted_width = min(max(max_length + 3, 12), 60)
             ws.column_dimensions[column_letter].width = adjusted_width
 
 
