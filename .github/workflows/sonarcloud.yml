@@ -21,4 +21,5 @@ jobs:
       - name: SonarQube Scan
         uses: SonarSource/sonarqube-scan-action@v5
         env:
+          # VS Code YAML extension false positive - this syntax is correct
           SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
