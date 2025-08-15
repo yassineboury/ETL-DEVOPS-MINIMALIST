@@ -60,8 +60,14 @@ logs/
 # Windows  
 Thumbs.db
 ehthumbs.db
+
 # Cache and temporary files
 cache/
 temp_batches/
-*.log
-.DS_Store
+
+# Fichiers de test/debug temporaires
+test_*.py
+debug_*.py
+analyze_*.py
+*_test.py
+*_debug.py

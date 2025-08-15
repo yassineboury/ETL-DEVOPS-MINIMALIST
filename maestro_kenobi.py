@@ -1,16 +1,18 @@
 #!/usr/bin/env python3
 """
-🎯 MAESTRO KENOBI - ETL DevSecOps Orchestrator
-Le maître orchestrateur pour les exports GitLab et DevSecOps
-Gère les exports selon un processus clair et par étapes avec style !
+� KENOBI MAESTRO - Orchestrateur GitLab Symphonique
+Le maître chef d'orchestre pour les exports GitLab et DevSecOps
+Dirige les mouvements d'extraction avec précision musicale et élégance !
 """
 
 import contextlib
 import sys
 import time
-from datetime import datetime
+from datetime import datetime, timedelta
 from pathlib import Path
+from typing import Any, Dict
 
+import pandas as pd
 from dotenv import load_dotenv
 from tqdm import tqdm
 
@@ -18,31 +20,524 @@ from tqdm import tqdm
 project_root = Path(__file__).parent
 sys.path.insert(0, str(project_root))
 
-from gitlab_tools.client.gitlab_client import create_gitlab_client
-from gitlab_tools.exporters.excel_exporter import (
+from kenobi_tools.gitlab.client.gitlab_client import GitLabClient
+from kenobi_tools.gitlab.exporters.gitlab_export_excel import (
+    GitLabExcelExporter,
+    export_groups_to_excel,
     export_projects_to_excel,
-    export_users_to_excel,
 )
-from gitlab_tools.extractors.projects_extractor import extract_projects
-from gitlab_tools.extractors.users_extractor import extract_human_users
+from kenobi_tools.gitlab.extractors.gitlab_extract_active_projects import extract_active_projects
+from kenobi_tools.gitlab.extractors.gitlab_extract_archived_projects import extract_archived_projects
+from kenobi_tools.gitlab.extractors.gitlab_extract_events import extract_events_by_project
+from kenobi_tools.gitlab.extractors.gitlab_extract_groups import extract_groups
+from kenobi_tools.gitlab.extractors.gitlab_extract_users import extract_human_users
 
 
 class MaestroKenobiOrchestrator:
     """
-    🎭 MAESTRO KENOBI - Le maître orchestrateur GitLab
-    Gère les exports GitLab avec élégance et puissance
+    🎭 MAESTRO KENOBI - Orchestrateur GitLab Intelligent
+    Menu interactif avec choix modulaires et gestion fine des extracteurs
     """
+
+    # Messages constants
+    NO_GITLAB_CONNECTION = "❌ Pas de connexion GitLab active"
+    INVALID_CHOICE_MESSAGE = "❌ Répondez par 'o' (oui) ou 'n' (non)"
+
+    # UI constants pour les tableaux
+    BORDER_LONG = "│                                                     │"
+    BORDER_MEDIUM = "│                                                  │"
+
+    # Configuration des périodes d'événements
+    EVENT_PERIODS = {
+        "1": {
+            "name": "30 derniers jours",
+            "duration": "2-5 minutes",
+            "after_date": lambda: (datetime.now() - timedelta(days=30))
+            .replace(hour=0, minute=0, second=0, microsecond=0)
+            .isoformat() + "Z",
+            "before_date": None
+        },
+        "2": {
+            "name": "3 derniers mois",
+            "duration": "5-10 minutes",
+            "after_date": lambda: (datetime.now() - timedelta(days=90))
+            .replace(hour=0, minute=0, second=0, microsecond=0)
+            .isoformat() + "Z",
+            "before_date": None
+        },
+        "3": {
+            "name": f"Année {datetime.now().year}",
+            "duration": "10-15 minutes",
+            "after_date": lambda: f"{datetime.now().year}-01-01T00:00:00Z",
+            "before_date": None
+        },
+        "4": {
+            "name": "Tous les événements",
+            "duration": "15-30 minutes",
+            "after_date": None,
+            "before_date": None
+        }
+    }
 
     def __init__(self):
         self.project_root = Path(__file__).parent
         self.exports_dir = self.project_root / "exports" / "gitlab"
         self.gitlab_client = None
         self.gl = None
+        self.extracted_data = {}
+        self.created_files = []
 
-        # Configuration de la barre de progression
-        self.total_steps = 6
+        # Configuration de progression
+        self.total_steps = 4  # Utilisateurs, Groupes, Projets, Événements
         self.current_step = 0
         self.main_progress = None
+
+    def show_welcome_banner(self):
+        """Bannière d'accueil vraiment minimaliste"""
+        print("\n" + "=" * 50)
+        print("          MAESTRO KENOBI")
+        print("          DevSecOps KPIs")
+        print("=" * 50)
+        print(f"🕒 {datetime.now().strftime('%d/%m/%Y à %H:%M:%S')}")
+        print("⚡ Orchestrateur intelligent")
+        print("🎯 GitLab Data Extraction")
+        print("=" * 50)
+
+    def show_main_menu(self) -> str:
+        """Menu principal vraiment minimaliste"""
+        print("\n\n\n" + "=" * 50)
+        print("         CHOIX D'EXTRACTION")
+        print("=" * 50)
+
+        print("1️⃣  MODE COMPLET")
+        print("   → Utilisateurs + Groupes + Projets")
+        print("   → Evenements avec choix periode")
+        print("   → Export Excel optimise")
+        print("   → Duree: 5-20 min selon periode")
+
+        print("\n2️⃣  MODE PERSONNALISE")
+        print("   → Selection modulaire par famille")
+        print("   → Controle fin des extracteurs")
+        print("   → Options avancees")
+        print("   → Duree: Variable selon selection")
+
+        print("=" * 50)
+
+        while True:
+            choice = input("\n🎯 Votre choix (1 ou 2) ► ").strip()
+            if choice in ["1", "2"]:
+                return choice
+            print("❌ Choix invalide, veuillez saisir 1 ou 2")
+
+    def show_events_period_menu(self) -> Dict[str, Any] | None:
+        """Menu de choix de période avec design cohérent"""
+        print("\n")
+        print("┌" + "─" * 55 + "┐")
+        print("│" + "       PÉRIODE DES ÉVÉNEMENTS GITLAB".center(55) + "│")
+        print("├" + "─" * 55 + "┤")
+        print(self.BORDER_LONG)
+        print("│  📅 1. 30 derniers jours                           │")
+        print("│     • Durée estimée: 2-5 minutes                   │")
+        print("│     • Volume: Moyen                                │")
+        print(self.BORDER_LONG)
+        print("│  📅 2. 3 derniers mois                             │")
+        print("│     • Durée estimée: 5-10 minutes                  │")
+        print("│     • Volume: Important                            │")
+        print(self.BORDER_LONG)
+        print("│  📅 3. Année " + str(datetime.now().year) + "                                  │")
+        print("│     • Durée estimée: 10-15 minutes                 │")
+        print("│     • Volume: Très important                       │")
+        print(self.BORDER_LONG)
+        print("│  📅 4. Tous les événements                         │")
+        print("│     • Durée estimée: 15-30 minutes                 │")
+        print("│     • Volume: Maximum                              │")
+        print(self.BORDER_LONG)
+        print("└" + "─" * 55 + "┘")
+
+        while True:
+            choice = input("\n🎯 Votre choix de période (1-4) ► ").strip()
+            if choice in self.EVENT_PERIODS:
+                config = self.EVENT_PERIODS[choice]
+                after_date = config["after_date"]() if config["after_date"] else None
+                print(f"\n✅ Période sélectionnée: {config['name']}")
+                return {
+                    "name": config["name"],
+                    "after_date": after_date,
+                    "before_date": config["before_date"]
+                }
+            print("❌ Choix invalide, veuillez saisir 1, 2, 3 ou 4")
+
+    def show_custom_menu(self) -> Dict[str, Any]:
+        """Menu personnalisé avec interface élégante"""
+        print("\n")
+        print("┌" + "─" * 55 + "┐")
+        print("│" + "            MODE PERSONNALISÉ".center(55) + "│")
+        print("├" + "─" * 55 + "┤")
+        print(self.BORDER_LONG)
+        print("│  📊 DONNÉES DE BASE (obligatoires)                 │")
+        print("│     • 👥 Utilisateurs GitLab (~30s)                │")
+        print("│     • 🏢 Groupes et sous-groupes (~20s)            │")
+        print("│     • 📁 Projets actifs + archivés (~45s)          │")
+        print(self.BORDER_LONG)
+        print("│  📈 DONNÉES D'ACTIVITÉ (optionnelles)              │")
+        print("│     • 🔄 Événements GitLab (2-30min)               │")
+        print("│       Push, merge, issues, commentaires...         │")
+        print(self.BORDER_LONG)
+        print("└" + "─" * 55 + "┘")
+
+        # Choix avec confirmation visuelle
+        print("\n🎯 Configuration:")
+        print("  ✅ Données de base: Incluses automatiquement")
+
+        while True:
+            events_choice = input("\n📈 Inclure les événements ? (o/n) ► ").strip().lower()
+            if events_choice in ["o", "oui", "y", "yes", "n", "non", "no"]:
+                break
+            print(self.INVALID_CHOICE_MESSAGE)
+
+        config = {
+            "include_base": True,
+            "include_events": events_choice in ["o", "oui", "y", "yes"],
+            "events_config": None
+        }
+
+        if config["include_events"]:
+            print("  ✅ Événements: Activés")
+            config["events_config"] = self.show_events_period_menu()
+        else:
+            print("  ❌ Événements: Désactivés")
+
+        return config
+
+    def run_intelligent_extraction(self) -> bool:
+        """Point d'entrée principal avec menu intelligent"""
+        self.show_welcome_banner()
+
+        # Menu principal
+        mode = self.show_main_menu()
+
+        if mode == "1":
+            return self.run_complete_mode()
+        else:
+            return self.run_custom_mode()
+
+    def run_complete_mode(self) -> bool:
+        """Mode complet avec affichage élégant des étapes"""
+        print("\n")
+        print("┌" + "─" * 50 + "┐")
+        print("│" + "🚀 MODE COMPLET SÉLECTIONNÉ".center(50) + "│")
+        print("└" + "─" * 50 + "┘")
+
+        # Étape 1: Choix de période pour les événements
+        print("\n📋 Étape 1/3: Configuration")
+        events_config = self.show_events_period_menu()
+
+        # Étape 2: Affichage du récapitulatif
+        print("\n📋 Étape 2/3: Récapitulatif")
+        print("┌" + "─" * 45 + "┐")
+        print("│" + "✅ Configuration choisie".center(45) + "│")
+        print("├" + "─" * 45 + "┤")
+        print("│                                             │")
+        print("│  📊 Données: Base + Activité               │")
+        print("│     • 👥 Utilisateurs                       │")
+        print("│     • 🏢 Groupes                            │")
+        print("│     • 📁 Projets (actifs + archivés)       │")
+        if events_config:
+            print(f"│     • 📅 Événements: {events_config['name']:<18} │")
+        else:
+            print("│     • 📅 Événements: Non configuré       │")
+        print("│                                             │")
+        print("└" + "─" * 45 + "┘")
+
+        # Étape 3: Confirmation et lancement
+        print("\n📋 Étape 3/3: Confirmation")
+        while True:
+            confirm = input("🚀 Lancer l'extraction ? (o/n) ► ").strip().lower()
+            if confirm in ["o", "oui", "y", "yes"]:
+                break
+            elif confirm in ["n", "non", "no"]:
+                print("❌ Extraction annulée")
+                return False
+            else:
+                print(self.INVALID_CHOICE_MESSAGE)
+
+        # Lancer l'extraction complète
+        if events_config is not None:
+            return self.execute_full_extraction(events_config)
+        else:
+            print("❌ Configuration des événements manquante")
+            return False
+
+    def run_custom_mode(self) -> bool:
+        """Mode personnalisé avec étapes guidées"""
+        print("\n")
+        print("┌" + "─" * 55 + "┐")
+        print("│" + "⚙️ MODE PERSONNALISÉ SÉLECTIONNÉ".center(55) + "│")
+        print("└" + "─" * 55 + "┘")
+
+        # Étape 1: Configuration personnalisée
+        print("\n📋 Étape 1/3: Configuration personnalisée")
+        config = self.show_custom_menu()
+
+        # Étape 2: Récapitulatif détaillé
+        print("\n📋 Étape 2/3: Récapitulatif de votre sélection")
+        print("┌" + "─" * 50 + "┐")
+        print("│" + "✅ Configuration personnalisée".center(50) + "│")
+        print("├" + "─" * 50 + "┤")
+        print(self.BORDER_MEDIUM)
+        print("│  📊 Données de base: ✅ Incluses                │")
+        print("│     • 👥 Utilisateurs                            │")
+        print("│     • 🏢 Groupes                                 │")
+        print("│     • 📁 Projets                                 │")
+        print(self.BORDER_MEDIUM)
+        if config["include_events"]:
+            print("│  � Événements: ✅ Inclus                       │")
+            print(f"│     • 📅 Période: {config['events_config']['name']:<23} │")
+        else:
+            print("│  � Événements: ❌ Exclus                       │")
+        print(self.BORDER_MEDIUM)
+        print("└" + "─" * 50 + "┘")
+
+        # Étape 3: Confirmation
+        print("\n📋 Étape 3/3: Confirmation finale")
+        while True:
+            confirm = input("🚀 Lancer l'extraction personnalisée ? (o/n) ► ").strip().lower()
+            if confirm in ["o", "oui", "y", "yes"]:
+                break
+            elif confirm in ["n", "non", "no"]:
+                print("❌ Extraction annulée")
+                return False
+            else:
+                print(self.INVALID_CHOICE_MESSAGE)
+
+        return self.execute_custom_extraction(config)
+
+    def execute_full_extraction(self, events_config: Dict[str, Any]) -> bool:
+        """Exécute l'extraction complète avec affichage élégant"""
+        print("\n")
+        print("🚀" + "═" * 56 + "🚀")
+        print("║" + "          DÉMARRAGE EXTRACTION COMPLÈTE          ".center(56) + "║")
+        print("🚀" + "═" * 56 + "🚀")
+
+        try:
+            # Étape 1/4: Connexion GitLab
+            print("\n⏳ Étape 1/4: Connexion GitLab...")
+            if not self._setup_gitlab_connection():
+                return False
+            print("✅ Connexion établie avec succès")
+
+            # Étape 2/4: Extraction des données de base
+            print("\n⏳ Étape 2/4: Extraction données de base...")
+            if not self._extract_base_data():
+                return False
+            print("✅ Données de base extraites")
+
+            # Étape 3/4: Extraction des événements
+            print(f"\n⏳ Étape 3/4: Extraction événements ({events_config['name']})...")
+            if not self._extract_events_with_config(events_config):
+                return False
+            print("✅ Événements extraits")
+
+            # Étape 4/4: Export Excel
+            print("\n⏳ Étape 4/4: Export Excel...")
+            if not self._export_to_excel():
+                return False
+            print("✅ Export Excel terminé")
+
+            # Succès final
+            print("\n")
+            print("🎉" + "═" * 56 + "🎉")
+            print("║" + "          EXTRACTION COMPLÈTE RÉUSSIE!          ".center(56) + "║")
+            print("🎉" + "═" * 56 + "🎉")
+
+            return True
+
+        except Exception as e:
+            print(f"\n❌ ERREUR: {e}")
+            print("🚨" + "═" * 56 + "🚨")
+            return False
+
+    def execute_custom_extraction(self, config: Dict[str, Any]) -> bool:
+        """Exécute l'extraction personnalisée avec affichage élégant"""
+        print("\n")
+        print("⚙️" + "═" * 56 + "⚙️")
+        print("║" + "        DÉMARRAGE EXTRACTION PERSONNALISÉE       ".center(56) + "║")
+        print("⚙️" + "═" * 56 + "⚙️")
+
+        total_steps = 3 if config["include_events"] else 2
+
+        try:
+            # Étape 1: Connexion GitLab
+            print(f"\n⏳ Étape 1/{total_steps}: Connexion GitLab...")
+            if not self._setup_gitlab_connection():
+                return False
+            print("✅ Connexion établie avec succès")
+
+            # Étape 2: Extraction des données de base
+            print(f"\n⏳ Étape 2/{total_steps}: Extraction données de base...")
+            if not self._extract_base_data():
+                return False
+            print("✅ Données de base extraites")
+
+            # Étape 3 conditionnelle: Extraction des événements
+            if config["include_events"]:
+                events_name = config['events_config']['name']
+                print(f"\n⏳ Étape 3/{total_steps}: Extraction événements ({events_name})...")
+                if not self._extract_events_with_config(config["events_config"]):
+                    return False
+                print("✅ Événements extraits")
+
+            # Étape finale: Export Excel
+            step_final = total_steps + 1
+            print(f"\n⏳ Étape {step_final}/{step_final}: Export Excel...")
+            if not self._export_to_excel():
+                return False
+            print("✅ Export Excel terminé")
+
+            # Succès final
+            print("\n")
+            print("🎉" + "═" * 56 + "🎉")
+            print("║" + "       EXTRACTION PERSONNALISÉE RÉUSSIE!        ".center(56) + "║")
+            print("🎉" + "═" * 56 + "🎉")
+
+            return True
+
+        except Exception as e:
+            print(f"\n❌ ERREUR: {e}")
+            print("🚨" + "═" * 56 + "🚨")
+            return False
+
+    def _setup_gitlab_connection(self) -> bool:
+        """Configure la connexion GitLab avec affichage élégant"""
+        print("   🔗 Initialisation connexion GitLab...")
+
+        try:
+            self.gitlab_client = GitLabClient()
+            self.gl = self.gitlab_client.get_client()
+
+            if not self.gl:
+                print("   ❌ Échec de connexion GitLab")
+                return False
+
+            print("   ✅ Client GitLab initialisé")
+            return True
+
+        except Exception as e:
+            print(f"   ❌ Erreur: {e}")
+            return False
+
+    def _extract_base_data(self) -> bool:
+        """Extrait les données de base avec progression visuelle"""
+        try:
+            if not self.gl:
+                print("   ❌ Pas de connexion GitLab disponible")
+                return False
+
+            # Extraction utilisateurs
+            print("   👥 Extraction utilisateurs...")
+            users_df = extract_human_users(self.gl)
+            self.extracted_data["users"] = users_df
+            print(f"      ✅ {len(users_df)} utilisateurs")
+
+            # Extraction groupes
+            print("   🏢 Extraction groupes...")
+            groups_df = extract_groups(self.gl)
+            self.extracted_data["groups"] = groups_df
+            print(f"      ✅ {len(groups_df)} groupes")
+
+            # Extraction projets actifs
+            print("   📁 Extraction projets actifs...")
+            active_projects_df = extract_active_projects(self.gl)
+            print(f"      ✅ {len(active_projects_df)} projets actifs")
+
+            # Extraction projets archivés
+            print("   📁 Extraction projets archivés...")
+            archived_projects_df = extract_archived_projects(self.gl)
+            print(f"      ✅ {len(archived_projects_df)} projets archivés")
+
+            # Combiner les projets
+            all_projects_df = pd.concat([active_projects_df, archived_projects_df], ignore_index=True)
+            self.extracted_data["projects"] = all_projects_df
+            print(f"      📊 Total: {len(all_projects_df)} projets combinés")
+
+            return True
+
+        except Exception as e:
+            print(f"   ❌ Erreur: {e}")
+            return False
+
+    def _extract_events_with_config(self, events_config: Dict[str, Any]) -> bool:
+        """Extrait les événements avec affichage de progression"""
+        try:
+            if not self.gl:
+                print("   ❌ Pas de connexion GitLab disponible")
+                return False
+
+            after_date = events_config.get("after_date")
+            before_date = events_config.get("before_date")
+
+            print(f"   🔍 Période: {events_config['name']}")
+            if after_date:
+                print(f"   📅 Depuis: {after_date[:10]}")
+
+            print("   📊 Extraction en cours...")
+            events_df = extract_events_by_project(
+                self.gl,
+                after_date=after_date,
+                before_date=before_date
+            )
+
+            self.extracted_data["events"] = events_df
+            print(f"      ✅ {len(events_df)} événements extraits")
+
+            return True
+
+        except Exception as e:
+            print(f"   ❌ Erreur: {e}")
+            return False
+
+    def _export_to_excel(self) -> bool:
+        """Exporte vers Excel avec progression détaillée"""
+        try:
+            # Créer le répertoire d'export
+            self.exports_dir.mkdir(parents=True, exist_ok=True)
+            timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
+
+            print("   📄 Génération fichiers Excel...")
+
+            # Export des données disponibles
+            if "users" in self.extracted_data:
+                users_file = self.exports_dir / f"gitlab_users_{timestamp}.xlsx"
+                self.extracted_data["users"].to_excel(users_file, index=False)
+                print(f"      ✅ {users_file.name}")
+                self.created_files.append(users_file)
+
+            if "groups" in self.extracted_data:
+                groups_file = self.exports_dir / f"gitlab_groups_{timestamp}.xlsx"
+                self.extracted_data["groups"].to_excel(groups_file, index=False)
+                print(f"      ✅ {groups_file.name}")
+                self.created_files.append(groups_file)
+
+            if "projects" in self.extracted_data:
+                projects_file = self.exports_dir / f"gitlab_projects_{timestamp}.xlsx"
+                self.extracted_data["projects"].to_excel(projects_file, index=False)
+                print(f"      ✅ {projects_file.name}")
+                self.created_files.append(projects_file)
+
+            if "events" in self.extracted_data:
+                events_file = self.exports_dir / f"gitlab_events_{timestamp}.xlsx"
+                self.extracted_data["events"].to_excel(events_file, index=False)
+                print(f"      ✅ {events_file.name}")
+                self.created_files.append(events_file)
+
+            print(f"   📂 Répertoire: {self.exports_dir}")
+            print(f"   🎯 {len(self.created_files)} fichier(s) généré(s)")
+
+            return True
+
+        except Exception as e:
+            print(f"   ❌ Erreur: {e}")
+            return False
 
     def _update_progress(self, description: str):
         """
@@ -129,7 +624,7 @@ class MaestroKenobiOrchestrator:
 
             # Créer le client GitLab
             print("🔑 Création du client GitLab...")
-            self.gitlab_client = create_gitlab_client()
+            self.gitlab_client = GitLabClient()
 
             # Se connecter
             print("🌐 Connexion à GitLab ONCF...")
@@ -160,7 +655,7 @@ class MaestroKenobiOrchestrator:
 
         try:
             if not self.gl:
-                print("❌ Pas de connexion GitLab active")
+                print(self.NO_GITLAB_CONNECTION)
                 return False, 0
 
             # Extraire les utilisateurs humains
@@ -188,30 +683,83 @@ class MaestroKenobiOrchestrator:
             self._update_progress("Erreur extraction utilisateurs")
             return False, 0
 
-    def step_4_extract_projects(self) -> tuple[bool, int]:
+    def step_4_extract_groups(self) -> tuple[bool, int]:
         """
-        Étape 4: Extraction des projets GitLab
+        Étape 4: Extraction des groupes GitLab
 
         Returns:
-            tuple: (succès, nombre de projets)
+            tuple: (succès, nombre de groupes)
         """
-        print("\n📁 ÉTAPE 4: Extraction des projets GitLab")
+        print("\n👥 ÉTAPE 4: Extraction des groupes GitLab")
         print("-" * 50)
 
         try:
             if not self.gl:
-                print("❌ Pas de connexion GitLab active")
+                print(self.NO_GITLAB_CONNECTION)
                 return False, 0
 
-            # Extraire tous les projets (actifs + archivés)
-            projects_df = extract_projects(self.gl, include_archived=True)
+            # Extraire les groupes directement
+            groups_df = extract_groups(self.gl)
+
+            if groups_df.empty:
+                print("❌ Aucun groupe trouvé")
+                return False, 0
+
+            groups_count = len(groups_df)
+            print(f"✅ {groups_count} groupes extraits")
+
+            # Statistiques rapides
+            if 'is_top_level' in groups_df.columns:
+                top_level_count = groups_df['is_top_level'].sum()
+                sub_groups_count = groups_count - top_level_count
+                print(f"📊 Groupes racine: {top_level_count}, Sous-groupes: {sub_groups_count}")
+
+            if 'total_members' in groups_df.columns:
+                total_members = groups_df['total_members'].sum()
+                print(f"👥 Total membres: {total_members}")
+
+            # Sauvegarder temporairement
+            self.groups_data = groups_df
+            self._update_progress(f"Extraction groupes ({groups_count})")
+            return True, groups_count
+
+        except Exception as e:
+            print(f"❌ Erreur lors de l'extraction des groupes: {e}")
+            self._update_progress("Erreur extraction groupes")
+            return False, 0
+
+    def step_5_extract_projects(self) -> tuple[bool, int]:
+        """
+        Étape 5: Extraction des projets GitLab
+
+        Returns:
+            tuple: (succès, nombre de projets)
+        """
+        print("\n📁 ÉTAPE 5: Extraction des projets GitLab")
+        print("-" * 50)
+
+        try:
+            if not self.gl:
+                print(self.NO_GITLAB_CONNECTION)
+                return False, 0
+
+            # Extraire les projets actifs
+            active_projects_df = extract_active_projects(self.gl)
+            print(f"✅ {len(active_projects_df)} projets actifs extraits")
+
+            # Extraire les projets archivés
+            archived_projects_df = extract_archived_projects(self.gl)
+            print(f"✅ {len(archived_projects_df)} projets archivés extraits")
+
+            # Combiner les deux DataFrames
+            projects_df = pd.concat([active_projects_df, archived_projects_df], ignore_index=True)
 
             if projects_df.empty:
                 print("❌ Aucun projet trouvé")
                 return False, 0
 
             project_count = len(projects_df)
-            print(f"✅ {project_count} projets extraits")
+            print(f"📊 Total: {project_count} projets extraits")
 
             # Statistiques rapides
             if 'etat' in projects_df.columns:
@@ -232,25 +780,28 @@ class MaestroKenobiOrchestrator:
             self._update_progress("Erreur extraction projets")
             return False, 0
 
-    def step_5_export_to_excel(self) -> tuple[bool, list]:
+    def step_6_export_to_excel(self) -> tuple[bool, list]:
         """
-        Étape 5: Export vers Excel
+        Étape 6: Export des données vers Excel
 
         Returns:
             tuple: (succès, liste des fichiers créés)
         """
-        print("\n📊 ÉTAPE 5: Export vers Excel")
+        print("\n📊 ÉTAPE 6: Export vers fichiers Excel")
         print("-" * 50)
 
         try:
-            if not hasattr(self, 'users_data') or not hasattr(self, 'projects_data'):
-                print("❌ Données manquantes pour l'export")
+            required_data = ['users_data', 'projects_data', 'groups_data']
+            missing_data = [data for data in required_data if not hasattr(self, data)]
+
+            if missing_data:
+                print(f"❌ Données manquantes pour l'export: {', '.join(missing_data)}")
                 return False, []
 
             created_files = []
 
             # Barre de progression pour l'export
-            export_tasks = ["utilisateurs", "projets"]
+            export_tasks = ["utilisateurs", "groupes", "projets"]
             with tqdm(
                 total=len(export_tasks),
                 desc="📁 Export Excel",
@@ -261,13 +812,26 @@ class MaestroKenobiOrchestrator:
                 # Export des utilisateurs
                 print("👥 Export des utilisateurs...")
                 pbar.set_description("📁 Export utilisateurs")
-                users_file = export_users_to_excel(
+                exporter = GitLabExcelExporter()
+                users_file = exporter.export_users(
                     self.users_data,
-                    filename="gitlab_users.xlsx"
+                    filename="gitlab_users_filtered.xlsx"
                 )
                 if users_file:
                     created_files.append(users_file)
                     print(f"   ✅ Utilisateurs: {Path(users_file).name}")
+                pbar.update(1)
+
+                # Export des groupes
+                print("👥 Export des groupes...")
+                pbar.set_description("📁 Export groupes")
+                groups_file = export_groups_to_excel(
+                    self.groups_data,
+                    filename="gitlab_groups.xlsx"
+                )
+                if groups_file:
+                    created_files.append(groups_file)
+                    print(f"   ✅ Groupes: {Path(groups_file).name}")
                 pbar.update(1)
                 time.sleep(0.2)
 
@@ -298,21 +862,22 @@ class MaestroKenobiOrchestrator:
             self._update_progress("Erreur export Excel")
             return False, []
 
-    def step_6_cleanup_and_summary(
-        self, users_count: int, projects_count: int, created_files: list
+    def step_7_cleanup_and_summary(
+        self, users_count: int, projects_count: int, groups_count: int, created_files: list
     ) -> bool:
         """
-        Étape 6: Nettoyage final et résumé
+        Étape 7: Nettoyage final et résumé
 
         Args:
             users_count: Nombre d'utilisateurs extraits
             projects_count: Nombre de projets extraits
+            groups_count: Nombre de groupes extraits
             created_files: Liste des fichiers créés
 
         Returns:
             bool: True si succès
         """
-        print("\n🧹 ÉTAPE 6: Nettoyage final et résumé")
+        print("\n🧹 ÉTAPE 7: Nettoyage final et résumé")
         print("-" * 50)
 
         try:
@@ -326,6 +891,8 @@ class MaestroKenobiOrchestrator:
                 delattr(self, 'users_data')
             if hasattr(self, 'projects_data'):
                 delattr(self, 'projects_data')
+            if hasattr(self, 'groups_data'):
+                delattr(self, 'groups_data')
 
             print("🗑️  Données temporaires nettoyées")
 
@@ -334,8 +901,10 @@ class MaestroKenobiOrchestrator:
             print("🎉 EXPORT GITLAB TERMINÉ AVEC SUCCÈS!")
             print("=" * 60)
             print(f"👥 Utilisateurs extraits: {users_count}")
+            print(f"👥 Groupes extraits: {groups_count}")
             print(f"📁 Projets extraits: {projects_count}")
-            print(f"📊 Fichiers Excel créés: {len(created_files)}")
+            print(f"� Fichiers Excel créés: {len(created_files)}")
+            print("=" * 60)
 
             if created_files:
                 print("\n📁 Fichiers générés:")
@@ -362,7 +931,7 @@ class MaestroKenobiOrchestrator:
         Returns:
             bool: True si tout s'est bien passé
         """
-        print("🚀 KENOBI DEVOPS - ORCHESTRATEUR D'EXPORT GITLAB")
+        print("🚀 MAESTRO KENOBI - DevSecOps ETL")
         print("=" * 60)
         print(f"📅 Démarrage le: {datetime.now().strftime('%d/%m/%Y à %H:%M:%S')}")
         print("=" * 60)
@@ -391,18 +960,26 @@ class MaestroKenobiOrchestrator:
                 if not users_success:
                     return False
 
-                # Étape 4: Extraction projets
-                projects_success, projects_count = self.step_4_extract_projects()
+                # Étape 4: Extraction groupes
+                groups_success, groups_count = self.step_4_extract_groups()
+                if not groups_success:
+                    return False
+
+                # Étape 5: Extraction projets
+                projects_success, projects_count = self.step_5_extract_projects()
                 if not projects_success:
                     return False
 
-                # Étape 5: Export Excel
-                export_success, created_files = self.step_5_export_to_excel()
+                # Étape 6: Export Excel
+                export_success, created_files = self.step_6_export_to_excel()
                 if not export_success:
                     return False
 
-                # Étape 6: Nettoyage et résumé
-                if not self.step_6_cleanup_and_summary(users_count, projects_count, created_files):
+                # Étape 7: Nettoyage et résumé
+                cleanup_success = self.step_7_cleanup_and_summary(
+                    users_count, projects_count, groups_count, created_files
+                )
+                if not cleanup_success:
                     return False
 
                 # Finaliser la barre de progression
@@ -424,14 +1001,11 @@ class MaestroKenobiOrchestrator:
 
 
 def main():
-    """🚀 Point d'entrée principal - MAESTRO KENOBI en action !"""
-    print("🎭 MAESTRO KENOBI - Orchestrateur DevSecOps")
-    print("=" * 50)
-
+    """🚀 Point d'entrée principal - MAESTRO KENOBI Intelligent !"""
     orchestrator = MaestroKenobiOrchestrator()
 
-    # Lancer l'export complet
-    success = orchestrator.run_full_export()
+    # Lancer l'extraction avec menu intelligent
+    success = orchestrator.run_intelligent_extraction()
 
     return success
 
