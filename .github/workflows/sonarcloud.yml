@@ -55,8 +55,8 @@ jobs:
           args:
             # Unique keys of your project and organization. You can find them in SonarCloud > Information (bottom-left menu)
             # mandatory
-            -Dsonar.projectKey=<your_project_key>
-            -Dsonar.organization=your-organization-key
+            -Dsonar.projectKey=yassineboury_ETL-DEVOPS-MINIMALIST
+            -Dsonar.organization=yassineboury-1
             # Comma-separated paths to directories containing main source files.
             #-Dsonar.sources= # optional, default is project base directory
             # Comma-separated paths to directories containing test source files.
