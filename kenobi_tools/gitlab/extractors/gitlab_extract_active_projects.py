@@ -47,57 +47,15 @@ def extract_active_projects(gl_client: python_gitlab.Gitlab) -> pd.DataFrame:
     active_df = pd.DataFrame(active_projects)
     
     if not active_df.empty:
-        print(f"📦 {len(active_df)} projets actifs trouvés sur {len(all_projects_df)} total")
-        
-        # Statistiques par visibilité
-        if 'visibilite' in active_df.columns:
-            visibility_stats = active_df['visibilite'].value_counts().to_dict()
-            for visibility, count in visibility_stats.items():
-                print(f"  - {visibility}: {count} projets")
+        print(f"✅ {len(active_df)} projets actifs extraits")
+        print("📋 Données brutes prêtes pour Power BI")
     else:
         print("⚠️ Aucun projet actif trouvé")
     
     return active_df
 
 
-def get_project_statistics(gl_client: python_gitlab.Gitlab) -> Dict[str, Any]:
-    """
-    Calcule des statistiques générales sur les projets actifs
-
-    Args:
-        gl_client: Client GitLab authentifié
-
-    Returns:
-        Dictionnaire avec les statistiques
-    """
-    try:
-        df = extract_active_projects(gl_client)
-        
-        if df.empty:
-            return {
-                'total_projets': 0,
-                'par_visibilite': {},
-                'par_langage': {},
-                'projets_vides': 0,
-                'avec_issues': 0,
-                'avec_forks': 0
-            }
-        
-        # Statistiques de base
-        stats = {
-            'total_projets': len(df),
-            'par_visibilite': df['visibilite'].value_counts().to_dict() if 'visibilite' in df.columns else {},
-            'par_langage': df['langage_principal'].value_counts().head(10).to_dict() if 'langage_principal' in df.columns else {},
-            'projets_vides': len(df[df['vide'] == STATUS_YES]) if 'vide' in df.columns else 0,
-            'avec_issues': len(df[df['issues_ouvertes'] > 0]) if 'issues_ouvertes' in df.columns else 0,
-            'avec_forks': len(df[df['forks'] > 0]) if 'forks' in df.columns else 0
-        }
-        
-        return stats
-        
-    except Exception as e:
-        print(f"❌ Erreur lors du calcul des statistiques : {e}")
-        return {}
+# Fonction get_project_statistics supprimée - Power BI s'occupe des statistiques
 
 
 if __name__ == "__main__":
@@ -109,15 +67,15 @@ if __name__ == "__main__":
     current_dir = Path(__file__).parent.parent
     sys.path.insert(0, str(current_dir))
 
-    from client.gitlab_client import create_gitlab_client
+    from ..client.gitlab_client import GitLabClient
 
-    print("🧪 Extraction et export Excel des projets actifs GitLab")
+    print("🧪 Extraction et export Excel des projets actifs GitLab - VERSION SIMPLIFIÉE")
     print("=" * 60)
 
     try:
-        # Créer le client GitLab
-        gitlab_client = create_gitlab_client()
-        gl = gitlab_client.connect()
+        # Créer le client GitLab  
+        client = GitLabClient()
+        gl = client.connect()
 
         # Extraction directe des projets actifs
         print("\n📊 Extraction des projets actifs...")
@@ -125,15 +83,11 @@ if __name__ == "__main__":
 
         if not active_projects.empty:
             print(f"   ✅ {len(active_projects)} projets actifs extraits")
-            
-            # Statistiques supplémentaires
-            stats = get_project_statistics(gl)
-            print("\n📈 Statistiques:")
-            print(f"   Total: {stats.get('total_projets', 0)} projets")
-            print(f"   Vides: {stats.get('projets_vides', 0)} projets")
-            print(f"   Avec issues: {stats.get('avec_issues', 0)} projets")
+            print("   📋 Données prêtes pour Power BI")
+        else:
+            print("   ⚠️ Aucun projet actif trouvé")
 
-        gitlab_client.disconnect()
+        client.disconnect()
 
         # Export Excel immédiat
         print("\n📁 Export Excel:")

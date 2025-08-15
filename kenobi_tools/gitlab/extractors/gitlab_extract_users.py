@@ -128,46 +128,4 @@ def _create_users_dataframe(users_data: list) -> pd.DataFrame:
     return df
 
 
-# Fonctions auxiliaires pour maintenir la compatibilité
-def get_user_summary_stats(df_users: pd.DataFrame) -> Dict[str, Any]:
-    """
-    Calcule des statistiques résumées sur les utilisateurs
-    
-    Args:
-        df_users: DataFrame des utilisateurs
-        
-    Returns:
-        Dictionnaire avec les statistiques
-    """
-    if df_users.empty:
-        return {}
-
-    return {
-        'total_utilisateurs': len(df_users),
-        'utilisateurs_actifs': len(df_users[df_users['etat'] == 'Actif']),
-        'utilisateurs_bloques': len(df_users[df_users['etat'] == 'Bloqué']),
-        'utilisateurs_desactives': len(df_users[df_users['etat'] == 'Désactivé']),
-        'administrateurs': len(df_users[df_users['admin'] == 'Oui']),
-        'utilisateurs_externes': len(df_users[df_users['identite_externe'] == 'Oui'])
-    }
-
-
-def filter_users_by_activity(df_users: pd.DataFrame, days_threshold: int = 90) -> pd.DataFrame:
-    """
-    Filtre les utilisateurs par activité récente
-    
-    Args:
-        df_users: DataFrame des utilisateurs
-        days_threshold: Seuil en jours pour considérer un utilisateur comme actif (utilisé pour future extension)
-        
-    Returns:
-        DataFrame filtré
-    """
-    if df_users.empty:
-        return df_users
-
-    # Cette fonction pourrait être étendue avec une logique de filtrage par date
-    # Pour l'instant, retourne tous les utilisateurs actifs
-    # Le paramètre days_threshold est préservé pour compatibilité future
-    _ = days_threshold  # Utilisation explicite pour éviter l'erreur
-    return df_users[df_users['etat'] == 'Actif']
+# Toutes les fonctions statistiques supprimées - Power BI fait tout ça mieux !
