@@ -24,7 +24,7 @@ def format_gitlab_date(date_str):
     try:
         dt = datetime.fromisoformat(date_str.replace('Z', '+00:00'))
         return dt.strftime('%d/%m/%Y %H:%M')
-    except:
+    except (ValueError, TypeError, AttributeError):
         return date_str
 
 def format_date_columns(df):
@@ -101,6 +101,156 @@ def get_date_filter_choice():
             print(f"❌ Erreur: {e}")
 
 
+def _get_active_projects(gl_client: python_gitlab.Gitlab, max_projects: Optional[int] = None) -> List[Any]:
+    """
+    Récupère la liste des projets actifs
+    
+    Args:
+        gl_client: Client GitLab
+        max_projects: Limite du nombre de projets à traiter
+        
+    Returns:
+        Liste des projets actifs à traiter
+    """
+    print("\n📂 Récupération de la liste des projets actifs...")
+    try:
+        all_projects = gl_client.projects.list(all=True)
+        projects = [p for p in all_projects if not getattr(p, 'archived', False)]
+        
+        print(f"✅ {len(projects)} projets actifs trouvés")
+        
+        total_projects = len(projects) if max_projects is None else min(len(projects), max_projects)
+        print(f"📊 {total_projects} projets à analyser")
+        
+        return projects[:max_projects] if max_projects else projects
+    except Exception as e:
+        print(f"❌ Erreur lors de la récupération des projets: {e}")
+        return []
+
+
+def _build_event_params(after_date: Optional[str], before_date: Optional[str], 
+                       action_filter: Optional[str], target_type_filter: Optional[str]) -> Dict[str, Any]:
+    """
+    Construit les paramètres pour la requête d'événements
+    
+    Args:
+        after_date: Date de début
+        before_date: Date de fin  
+        action_filter: Filtre sur l'action
+        target_type_filter: Filtre sur le type de cible
+        
+    Returns:
+        Dictionnaire des paramètres
+    """
+    params = {}
+    if after_date:
+        params['after'] = after_date
+    if before_date:
+        params['before'] = before_date
+    if action_filter:
+        params['action'] = action_filter
+    if target_type_filter:
+        params['target_type'] = target_type_filter
+    return params
+
+
+def _extract_event_data(event: Any, project: Any) -> Dict[str, Any]:
+    """
+    Extrait les données d'un événement GitLab
+    
+    Args:
+        event: Événement GitLab
+        project: Projet associé
+        
+    Returns:
+        Dictionnaire avec les données de l'événement
+    """
+    event_data = {
+        'id': getattr(event, 'id', ''),
+        'project_id': getattr(project, 'id', ''),
+        'project_name': getattr(project, 'name', ''),
+        'project_path': getattr(project, 'path_with_namespace', ''),
+        'action_name': getattr(event, 'action_name', ''),
+        'target_type': getattr(event, 'target_type', ''),
+        'target_id': getattr(event, 'target_id', ''),
+        'target_title': getattr(event, 'target_title', ''),
+        'author_id': getattr(event, 'author_id', ''),
+        'author_username': getattr(event, 'author_username', ''),
+        'author_name': getattr(event, 'author_name', ''),
+        'author_email': getattr(event, 'author_email', ''),
+        'created_at': getattr(event, 'created_at', ''),
+        'note': getattr(event, 'note', ''),
+        'imported': getattr(event, 'imported', False),
+        'imported_from': getattr(event, 'imported_from', ''),
+    }
+    
+    # Traitement spécial pour les événements push
+    if hasattr(event, 'push_data') and event.push_data:
+        push_data = event.push_data
+        event_data.update({
+            'push_commit_count': getattr(push_data, 'commit_count', 0),
+            'push_action': getattr(push_data, 'action', ''),
+            'push_ref': getattr(push_data, 'ref', ''),
+            'push_ref_type': getattr(push_data, 'ref_type', ''),
+            'push_commit_from': getattr(push_data, 'commit_from', ''),
+            'push_commit_to': getattr(push_data, 'commit_to', ''),
+        })
+    else:
+        # Initialiser avec des valeurs vides pour les événements non-push
+        event_data.update({
+            'push_commit_count': 0,
+            'push_action': '',
+            'push_ref': '',
+            'push_ref_type': '',
+            'push_commit_from': '',
+            'push_commit_to': '',
+        })
+    
+    return event_data
+
+
+def _process_project_events(project: Any, event_params: Dict[str, Any]) -> List[Dict[str, Any]]:
+    """
+    Traite les événements d'un projet spécifique
+    
+    Args:
+        project: Projet GitLab
+        event_params: Paramètres de filtrage des événements
+        
+    Returns:
+        Liste des données d'événements extraites
+    """
+    project_events_data = []
+    
+    try:
+        # Récupérer les événements du projet
+        project_events = project.events.list(all=True, **event_params)
+        
+        if not project_events:
+            print("   📭 Aucun événement trouvé")
+            return project_events_data
+        
+        print(f"   📄 {len(project_events)} événements trouvés")
+        
+        # Traiter chaque événement
+        for event in project_events:
+            try:
+                event_data = _extract_event_data(event, project)
+                project_events_data.append(event_data)
+                
+                if len(project_events_data) % 100 == 0:
+                    print(f"   📊 {len(project_events_data)} événements traités...")
+                    
+            except Exception as e:
+                print(f"   ⚠️ Erreur sur événement {getattr(event, 'id', 'N/A')}: {e}")
+                continue
+                
+    except Exception as e:
+        print(f"   ❌ Erreur pour le projet {project.name}: {e}")
+    
+    return project_events_data
+
+
 def extract_events_by_project(
     gl_client: python_gitlab.Gitlab,
     after_date: Optional[str] = None,
@@ -109,12 +259,9 @@ def extract_events_by_project(
     action_filter: Optional[str] = None,
     target_type_filter: Optional[str] = None
 ) -> pd.DataFrame:
-    """Extrait les événements GitLab projet par projet"""
+    """Extrait les événements GitLab projet par projet - Version refactorisée"""
     
     try:
-        events_data = []
-        events_count = 0
-        
         print("📊 Récupération: TOUS les événements")
         if max_projects:
             print(f"📁 Limite projets: {max_projects} projets maximum")
@@ -123,115 +270,31 @@ def extract_events_by_project(
         if before_date:
             print(f"📅 Avant: {format_gitlab_date(before_date)}")
 
-        # Récupérer tous les projets visibles (actifs seulement)
-        print("\n📂 Récupération de la liste des projets actifs...")
-        try:
-            all_projects = gl_client.projects.list(all=True)
-            projects = [p for p in all_projects if not getattr(p, 'archived', False)]
-            
-            print(f"✅ {len(projects)} projets actifs trouvés")
-            
-            total_projects = len(projects) if max_projects is None else min(len(projects), max_projects)
-            print(f"📊 {total_projects} projets à analyser")
-        except Exception as e:
-            print(f"❌ Erreur lors de la récupération des projets: {e}")
+        # Récupérer la liste des projets actifs
+        projects = _get_active_projects(gl_client, max_projects)
+        if not projects:
             return pd.DataFrame()
         
-        # Parcourir chaque projet pour extraire ses événements
-        projects_to_process = projects[:max_projects] if max_projects else projects
+        # Construire les paramètres de filtrage
+        event_params = _build_event_params(after_date, before_date, action_filter, target_type_filter)
         
-        for i, project in enumerate(projects_to_process):
-            print(f"\n📁 Projet {i+1}/{total_projects}: {project.name} (ID: {project.id})")
-            
-            try:
-                # Paramètres pour les événements du projet
-                event_params = {}
-                
-                if after_date:
-                    event_params['after'] = after_date
-                if before_date:
-                    event_params['before'] = before_date
-                if action_filter:
-                    event_params['action'] = action_filter
-                if target_type_filter:
-                    event_params['target_type'] = target_type_filter
-                
-                # Récupérer les événements du projet
-                project_events = project.events.list(all=True, **event_params)
-                
-                if not project_events:
-                    print("   📭 Aucun événement trouvé")
-                    continue
-                
-                print(f"   📄 {len(project_events)} événements trouvés")
-                
-                # Traiter chaque événement
-                for event in project_events:
-                    try:
-                        # Extraire les informations de l'événement
-                        event_data = {
-                            'id': event.id,
-                            'project_id': project.id,
-                            'project_name': project.name,
-                            'project_path': project.path_with_namespace,
-                            'action_name': getattr(event, 'action_name', ''),
-                            'target_type': getattr(event, 'target_type', ''),
-                            'target_id': getattr(event, 'target_id', ''),
-                            'target_title': getattr(event, 'target_title', ''),
-                            'author_id': event.author.get('id', '') if event.author else '',
-                            'author_name': format_user_name(event.author.get('name', '')) if event.author else 'N/A',
-                            'author_username': event.author.get('username', '') if event.author else '',
-                            'created_at': event.created_at,
-                            'imported': getattr(event, 'imported', False),
-                            'imported_from': getattr(event, 'imported_from', ''),
-                        }
-                        
-                        # Ajouter les données de push si disponibles
-                        if hasattr(event, 'push_data') and event.push_data:
-                            push_data = event.push_data
-                            event_data.update({
-                                'push_commit_count': push_data.get('commit_count', 0),
-                                'push_action': push_data.get('action', ''),
-                                'push_ref': push_data.get('ref', '').replace('refs/heads/', ''),
-                                'push_ref_type': push_data.get('ref_type', ''),
-                                'push_commit_from': push_data.get('commit_from', ''),
-                                'push_commit_to': push_data.get('commit_to', ''),
-                            })
-                        else:
-                            # Initialiser avec des valeurs vides pour les événements non-push
-                            event_data.update({
-                                'push_commit_count': 0,
-                                'push_action': '',
-                                'push_ref': '',
-                                'push_ref_type': '',
-                                'push_commit_from': '',
-                                'push_commit_to': '',
-                            })
-                        
-                        events_data.append(event_data)
-                        events_count += 1
-                        
-                        if events_count % 100 == 0:
-                            print(f"   📊 {events_count} événements traités...")
-                            
-                    except Exception as e:
-                        print(f"   ⚠️ Erreur sur événement {getattr(event, 'id', 'N/A')}: {e}")
-                        continue
-                        
-            except Exception as e:
-                print(f"   ❌ Erreur pour le projet {project.name}: {e}")
-                continue
+        # Traiter tous les projets
+        all_events_data = []
+        total_projects = len(projects)
+        
+        for i, project in enumerate(projects):
+            print(f"\n� Projet {i+1}/{total_projects}: {project.name} (ID: {project.id})")
+            project_events = _process_project_events(project, event_params)
+            all_events_data.extend(project_events)
 
-        print(f"✅ {len(events_data)} événements extraits")
+        print(f"✅ {len(all_events_data)} événements extraits")
         
-        if not events_data:
+        if not all_events_data:
             print("❌ Aucun événement trouvé")
             return pd.DataFrame()
 
-        # Créer le DataFrame
-        df = pd.DataFrame(events_data)
-        
-        # Appliquer le formatage des dates
+        # Créer le DataFrame et appliquer le formatage
+        df = pd.DataFrame(all_events_data)
         df = format_date_columns(df)
         
         # Trier par ID décroissant (plus récents en premier)
@@ -259,7 +322,7 @@ def main():
                 print(f"👤 Utilisateur: {gl_client.user.username}")
             else:
                 print("👤 Utilisateur: (informations non disponibles)")
-        except:
+        except Exception:
             print("👤 Utilisateur: (erreur lors de la récupération)")
         
         # Configuration
@@ -364,7 +427,7 @@ def main():
         try:
             if 'gl_client' in locals():
                 print("🔌 Connexion GitLab fermée")
-        except:
+        except Exception:
             pass
 
 

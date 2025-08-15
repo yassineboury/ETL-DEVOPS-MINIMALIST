@@ -21,6 +21,62 @@ from .constants import EXPORTS_GITLAB_PATH
 from openpyxl.utils import get_column_letter
 
 
+def _apply_autofilter(worksheet, enable_autofilter: bool = True):
+    """Applique le filtre automatique à la feuille"""
+    if not enable_autofilter or not worksheet or worksheet.max_row <= 1:
+        return
+        
+    try:
+        max_col_letter = get_column_letter(worksheet.max_column)
+        worksheet.auto_filter.ref = f"A1:{max_col_letter}{worksheet.max_row}"
+    except Exception as e:
+        print(f"⚠️ Erreur filtre automatique: {e}")
+
+
+def _freeze_header_row(worksheet, freeze_first_row: bool = True):
+    """Fige la première ligne de la feuille"""
+    if not freeze_first_row or not worksheet:
+        return
+        
+    try:
+        worksheet.freeze_panes = "A2"
+    except Exception as e:
+        print(f"⚠️ Erreur gel première ligne: {e}")
+
+
+def _format_header_row(worksheet, header_color: str = "366092", header_font_color: str = "FFFFFF"):
+    """Applique le formatage aux en-têtes (première ligne)"""
+    if not worksheet or worksheet.max_row <= 0:
+        return
+        
+    try:
+        header_fill = PatternFill(start_color=header_color, end_color=header_color, fill_type="solid")
+        header_font = Font(bold=True, color=header_font_color)
+        header_alignment = Alignment(horizontal="left", vertical="center")
+        
+        for cell in worksheet[1]:
+            cell.fill = header_fill
+            cell.font = header_font
+            cell.alignment = header_alignment
+    except Exception as e:
+        print(f"⚠️ Erreur formatage en-têtes: {e}")
+
+
+def _format_content_rows(worksheet, content_alignment: str = "left"):
+    """Applique le formatage au contenu (toutes les lignes sauf la première)"""
+    if not worksheet or worksheet.max_row <= 1:
+        return
+        
+    try:
+        content_alignment_obj = Alignment(horizontal=content_alignment, vertical="center")
+        for row in range(2, worksheet.max_row + 1):
+            for col in range(1, worksheet.max_column + 1):
+                cell = worksheet.cell(row=row, column=col)
+                cell.alignment = content_alignment_obj
+    except Exception as e:
+        print(f"⚠️ Erreur alignement contenu: {e}")
+
+
 def apply_standard_excel_formatting(
     worksheet,
     enable_autofilter: bool = True,
@@ -30,50 +86,16 @@ def apply_standard_excel_formatting(
     content_alignment: str = "left"
 ):
     """
-    Applique le formatage standard aux feuilles Excel
+    Applique le formatage standard aux feuilles Excel - Version refactorisée
     """
     if not worksheet:
         return
     
-    try:
-        # Activer le filtre automatique
-        if enable_autofilter and worksheet.max_row > 1:
-            max_col_letter = get_column_letter(worksheet.max_column)
-            worksheet.auto_filter.ref = f"A1:{max_col_letter}{worksheet.max_row}"
-    except Exception as e:
-        print(f"⚠️ Erreur filtre automatique: {e}")
-    
-    try:
-        # Figer la première ligne
-        if freeze_first_row:
-            worksheet.freeze_panes = "A2"
-    except Exception as e:
-        print(f"⚠️ Erreur gel première ligne: {e}")
-    
-    try:
-        # Formater les en-têtes (première ligne)
-        if worksheet.max_row > 0:
-            header_fill = PatternFill(start_color=header_color, end_color=header_color, fill_type="solid")
-            header_font = Font(bold=True, color=header_font_color)
-            header_alignment = Alignment(horizontal="left", vertical="center")
-            
-            for cell in worksheet[1]:
-                cell.fill = header_fill
-                cell.font = header_font
-                cell.alignment = header_alignment
-    except Exception as e:
-        print(f"⚠️ Erreur formatage en-têtes: {e}")
-    
-    try:
-        # Formater le contenu (toutes les autres lignes)
-        if worksheet.max_row > 1:
-            content_alignment_obj = Alignment(horizontal=content_alignment, vertical="center")
-            for row in range(2, worksheet.max_row + 1):
-                for col in range(1, worksheet.max_column + 1):
-                    cell = worksheet.cell(row=row, column=col)
-                    cell.alignment = content_alignment_obj
-    except Exception as e:
-        print(f"⚠️ Erreur alignement contenu: {e}")
+    # Appliquer chaque type de formatage
+    _apply_autofilter(worksheet, enable_autofilter)
+    _freeze_header_row(worksheet, freeze_first_row)
+    _format_header_row(worksheet, header_color, header_font_color)
+    _format_content_rows(worksheet, content_alignment)
     
     try:
         # Ajuster automatiquement la largeur des colonnes
