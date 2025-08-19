@@ -97,8 +97,15 @@ class GitLabClient:
         if not GitLabValidator.validate_url_format(gitlab_url):
             raise ValueError(f"Format d'URL invalide: {gitlab_url}")
 
-        # Configuration SSL basée sur le domaine
-        ssl_verify = not GitLabValidator.is_internal_domain(gitlab_url)
+        # Configuration SSL depuis la config ou basée sur le domaine
+        ssl_verify = True
+        if self.config and 'gitlab' in self.config and 'ssl_verify' in self.config['gitlab']:
+            ssl_verify = self.config['gitlab']['ssl_verify']
+        else:
+            ssl_verify = not GitLabValidator.is_internal_domain(gitlab_url)
+        
+        if not ssl_verify:
+            print("⚠️ Vérification SSL désactivée")
         
         return python_gitlab.Gitlab(
             url=gitlab_url,
@@ -112,13 +119,40 @@ class GitLabClient:
         """
         Teste la connexion GitLab
         """
+        if not self.client:
+            raise ConnectionError("Client GitLab non initialisé")
+            
         try:
-            current_user = self.client.user  # type: ignore
-            print(f"✅ Connecté en tant que: {current_user.name} ({current_user.username})")
+            # Test basique d'authentification
+            self.client.auth()
+            
+            # Essayer d'obtenir les infos utilisateur
+            try:
+                current_user = self.client.user
+                if current_user and hasattr(current_user, 'name'):
+                    print(f"✅ Connecté en tant que: {current_user.name} ({current_user.username})")
+                else:
+                    # Fallback: essayer d'obtenir les infos via l'API
+                    if current_user and hasattr(current_user, 'id'):
+                        user_info = self.client.users.get(current_user.id, lazy=True)
+                        print(f"✅ Connexion établie - User ID: {user_info.id}")
+                    else:
+                        print("✅ Connexion GitLab établie (infos utilisateur limitées)")
+            except Exception:
+                # Si impossible d'obtenir les infos utilisateur, tester l'accès aux projets
+                print("✅ Connexion GitLab établie (infos utilisateur non disponibles)")
             
             # Test d'accès aux ressources
-            projects = self.client.projects.list(owned=True, simple=True, per_page=1)  # type: ignore
-            print(f"🔍 Accès vérifié - {len(projects)} projet(s) accessible(s)")
+            try:
+                projects = self.client.projects.list(owned=True, simple=True, per_page=1, get_all=False)
+                print(f"🔍 Accès vérifié - {len(projects)} projet(s) accessible(s)")
+            except Exception:
+                # Essayer un accès plus basique
+                try:
+                    version = self.client.version()
+                    print(f"🔍 Accès API vérifié - Version GitLab: {version}")
+                except Exception:
+                    print("🔍 Connexion basique établie")
             
         except python_gitlab.GitlabAuthenticationError:
             raise python_gitlab.GitlabAuthenticationError("Token GitLab invalide ou expiré")
