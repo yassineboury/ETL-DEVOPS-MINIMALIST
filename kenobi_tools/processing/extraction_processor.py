@@ -1,10 +1,28 @@
 """
-Processeur d'extraction GitLab - VERSION ULTRA-SIMPLIFIÉE POWER BI
+Processeur d'extraction GitLab - VERSIO            # Extractions directes avec nettoyage initial
+            print("� Extraction utilisateurs...")
+            users_df = extract_human_users(gl)
+            if not users_df.empty:
+                exporter.export_users(users_df, clean_first=True)  # Nettoyer seulement au début
+            
+            print("👥 Extraction groupes...")
+            groups_df = extract_groups(gl)
+            if not groups_df.empty:
+                exporter.export_groups(groups_df, clean_first=False)  # Pas de nettoyage
+            
+            print("📁 Extraction projets actifs...")
+            active_projects_df = extract_active_projects(gl)
+            if not active_projects_df.empty:
+                exporter.export_projects(active_projects_df, "active_projects", clean_first=False)  # Pas de nettoyage
+            
+            print("📦 Extraction projets archivés...")  
+            archived_projects_df = extract_archived_projects(gl)
+            if not archived_projects_df.empty:
+                exporter.export_projects(archived_projects_df, "archived_projects", clean_first=False)  # Pas de nettoyageOWER BI
 Orchestration simple sans statistiques ni complexité
 Complexité cognitive visée: ≤ 10
 """
 from pathlib import Path
-from datetime import datetime
 from typing import Optional
 import pandas as pd
 
@@ -40,47 +58,31 @@ class ExtractionProcessor:
             client = GitLabClient()
             gl = client.connect()
             
+            # Initialiser l'exporteur
+            exporter = GitLabExcelExporter(exports_dir)
+            
             # Extractions directes
-            print("👥 Extraction utilisateurs...")
-            self.extracted_data['users'] = extract_human_users(gl)
+            print("� Extraction utilisateurs...")
+            users_df = extract_human_users(gl)
+            if not users_df.empty:
+                exporter.export_users(users_df)
             
             print("👥 Extraction groupes...")
-            self.extracted_data['groups'] = extract_groups(gl)
+            groups_df = extract_groups(gl)
+            if not groups_df.empty:
+                exporter.export_groups(groups_df)
             
             print("📁 Extraction projets actifs...")
-            self.extracted_data['active_projects'] = extract_active_projects(gl)
+            active_projects_df = extract_active_projects(gl)
+            if not active_projects_df.empty:
+                exporter.export_projects(active_projects_df, "active_projects")
             
             print("📦 Extraction projets archivés...")  
-            self.extracted_data['archived_projects'] = extract_archived_projects(gl)
+            archived_projects_df = extract_archived_projects(gl)
+            if not archived_projects_df.empty:
+                exporter.export_projects(archived_projects_df, "archived_projects")
             
-            # Export Excel direct - utilisation des méthodes existantes
-            print("📊 Export Excel...")
-            timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
-            
-            # Export utilisateurs
-            if not self.extracted_data.get('users', pd.DataFrame()).empty:
-                users_file = exports_dir / f"gitlab_users_{timestamp}.xlsx"
-                self.extracted_data['users'].to_excel(users_file, index=False)
-                print(f"✅ Utilisateurs exportés: {users_file}")
-            
-            # Export groupes  
-            if not self.extracted_data.get('groups', pd.DataFrame()).empty:
-                groups_file = exports_dir / f"gitlab_groups_{timestamp}.xlsx"
-                self.extracted_data['groups'].to_excel(groups_file, index=False)
-                print(f"✅ Groupes exportés: {groups_file}")
-            
-            # Export projets actifs
-            if not self.extracted_data.get('active_projects', pd.DataFrame()).empty:
-                active_file = exports_dir / f"gitlab_active_projects_{timestamp}.xlsx"
-                self.extracted_data['active_projects'].to_excel(active_file, index=False)
-                print(f"✅ Projets actifs exportés: {active_file}")
-                
-            # Export projets archivés
-            if not self.extracted_data.get('archived_projects', pd.DataFrame()).empty:
-                archived_file = exports_dir / f"gitlab_archived_projects_{timestamp}.xlsx"
-                self.extracted_data['archived_projects'].to_excel(archived_file, index=False)
-                print(f"✅ Projets archivés exportés: {archived_file}")
-            
+            print("✅ Extraction terminée")
             return True
             
         except Exception as e:

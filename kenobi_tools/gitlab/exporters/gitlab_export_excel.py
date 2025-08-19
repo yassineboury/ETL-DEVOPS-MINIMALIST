@@ -3,10 +3,11 @@ Exporteur Excel pour GitLab - VERSION ULTRA-SIMPLIFIÉE POWER BI
 Export brut sans formatage - Power BI s'occupe de tout !
 Complexité cognitive visée: ≤ 8
 """
-from datetime import datetime
 from pathlib import Path
 from typing import Optional
 import pandas as pd
+import glob
+import os
 
 
 class GitLabExcelExporter:
@@ -22,14 +23,27 @@ class GitLabExcelExporter:
         
         self.export_dir.mkdir(parents=True, exist_ok=True)
     
-    def export_users(self, df_users: pd.DataFrame) -> str:
+    def clean_old_exports(self):
+        """Supprime tous les anciens fichiers Excel pour avoir toujours la dernière version"""
+        xlsx_files = glob.glob(str(self.export_dir / "*.xlsx"))
+        for file in xlsx_files:
+            try:
+                os.remove(file)
+                print(f"🗑️ Ancien fichier supprimé: {Path(file).name}")
+            except Exception as e:
+                print(f"⚠️ Impossible de supprimer {Path(file).name}: {e}")
+    
+    def export_users(self, df_users: pd.DataFrame, clean_first: bool = False) -> str:
         """Exporte les utilisateurs - VERSION SIMPLE"""
         if df_users.empty:
             print("⚠️ Aucun utilisateur à exporter")
             return ""
         
-        timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
-        filename = self.export_dir / f"gitlab_users_{timestamp}.xlsx"
+        # Nettoyer les anciens exports seulement si demandé
+        if clean_first:
+            self.clean_old_exports()
+        
+        filename = self.export_dir / "gitlab_users.xlsx"
         
         # Export basique - Power BI fait le reste
         df_users.to_excel(filename, sheet_name="Gitlab Users", index=False)
@@ -37,28 +51,34 @@ class GitLabExcelExporter:
         print(f"✅ {len(df_users)} utilisateurs → {filename}")
         return str(filename)
     
-    def export_groups(self, df_groups: pd.DataFrame) -> str:
+    def export_groups(self, df_groups: pd.DataFrame, clean_first: bool = False) -> str:
         """Exporte les groupes - VERSION SIMPLE"""
         if df_groups.empty:
             print("⚠️ Aucun groupe à exporter")
             return ""
         
-        timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
-        filename = self.export_dir / f"gitlab_groups_{timestamp}.xlsx"
+        # Nettoyer les anciens exports seulement si demandé
+        if clean_first:
+            self.clean_old_exports()
+        
+        filename = self.export_dir / "gitlab_groups.xlsx"
         
         df_groups.to_excel(filename, sheet_name="Gitlab Groups", index=False)
         
         print(f"✅ {len(df_groups)} groupes → {filename}")
         return str(filename)
     
-    def export_projects(self, df_projects: pd.DataFrame, project_type: str = "projects") -> str:
+    def export_projects(self, df_projects: pd.DataFrame, project_type: str = "projects", clean_first: bool = False) -> str:
         """Exporte les projets - VERSION SIMPLE"""
         if df_projects.empty:
             print(f"⚠️ Aucun projet {project_type} à exporter")
             return ""
         
-        timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
-        filename = self.export_dir / f"gitlab_{project_type}_{timestamp}.xlsx"
+        # Nettoyer les anciens exports seulement si demandé
+        if clean_first:
+            self.clean_old_exports()
+        
+        filename = self.export_dir / f"gitlab_{project_type}.xlsx"
         sheet_name = f"Gitlab {project_type.title()}"
         
         df_projects.to_excel(filename, sheet_name=sheet_name, index=False)
@@ -66,14 +86,17 @@ class GitLabExcelExporter:
         print(f"✅ {len(df_projects)} projets {project_type} → {filename}")
         return str(filename)
     
-    def export_events(self, df_events: pd.DataFrame) -> str:
+    def export_events(self, df_events: pd.DataFrame, clean_first: bool = False) -> str:
         """Exporte les événements - VERSION SIMPLE"""
         if df_events.empty:
             print("⚠️ Aucun événement à exporter")
             return ""
         
-        timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
-        filename = self.export_dir / f"gitlab_events_{timestamp}.xlsx"
+        # Nettoyer les anciens exports seulement si demandé
+        if clean_first:
+            self.clean_old_exports()
+        
+        filename = self.export_dir / "gitlab_events.xlsx"
         
         df_events.to_excel(filename, sheet_name="Gitlab Events", index=False)
         
