@@ -9,6 +9,20 @@ import pandas as pd
 import glob
 import os
 
+from ...utils.column_mappings import (
+    get_users_mapping, get_users_column_order,
+    get_groups_mapping, get_groups_column_order, 
+    get_projects_mapping, get_projects_column_order
+)
+
+# Import de la référence officielle des colonnes
+from ...utils.column_mappings import (
+    USERS_COLUMN_MAPPING, 
+    USERS_COLUMN_ORDER,
+    get_users_mapping,
+    get_users_column_order
+)
+
 
 class GitLabExcelExporter:
     """Exporteur Excel minimaliste pour Power BI"""
@@ -35,45 +49,63 @@ class GitLabExcelExporter:
     
     def export_users(self, df_users: pd.DataFrame, clean_first: bool = False) -> str:
         """Exporte les utilisateurs - VERSION SIMPLE"""
-        if df_users.empty:
-            print("⚠️ Aucun utilisateur à exporter")
-            return ""
-        
         # Nettoyer les anciens exports seulement si demandé
         if clean_first:
             self.clean_old_exports()
         
         filename = self.export_dir / "gitlab_users.xlsx"
         
+        if df_users.empty:
+            # Créer un fichier vide avec en-têtes pour Power BI (RÉFÉRENCE OFFICIELLE)
+            empty_df = pd.DataFrame(columns=get_users_column_order())
+            empty_df.to_excel(filename, sheet_name="Gitlab Users", index=False)
+            print(f"⚠️ Aucun utilisateur trouvé - fichier vide créé → {filename}")
+            return str(filename)
+        
+        # Mapping des colonnes selon la RÉFÉRENCE OFFICIELLE
+        column_mapping = get_users_mapping()
+        
+        # Renommer les colonnes pour Power BI
+        df_export = df_users.rename(columns=column_mapping)
+        
+        # Réordonner les colonnes selon la spécification OFFICIELLE
+        column_order = get_users_column_order()
+        df_export = df_export[column_order]
+        
         # Export basique - Power BI fait le reste
-        df_users.to_excel(filename, sheet_name="Gitlab Users", index=False)
+        df_export.to_excel(filename, sheet_name="Gitlab Users", index=False)
         
         print(f"✅ {len(df_users)} utilisateurs → {filename}")
         return str(filename)
     
     def export_groups(self, df_groups: pd.DataFrame, clean_first: bool = False) -> str:
         """Exporte les groupes - VERSION SIMPLE"""
-        if df_groups.empty:
-            print("⚠️ Aucun groupe à exporter")
-            return ""
-        
         # Nettoyer les anciens exports seulement si demandé
         if clean_first:
             self.clean_old_exports()
         
         filename = self.export_dir / "gitlab_groups.xlsx"
         
-        df_groups.to_excel(filename, sheet_name="Gitlab Groups", index=False)
+        if df_groups.empty:
+            # Créer un fichier vide avec en-têtes Power BI (RÉFÉRENCE CENTRALISÉE)
+            empty_df = pd.DataFrame(columns=get_groups_column_order())
+            empty_df.to_excel(filename, sheet_name="Gitlab Groups", index=False)
+            print(f"⚠️ Aucun groupe trouvé - fichier vide créé → {filename}")
+            return str(filename)
+        
+        # Mapper les colonnes selon la RÉFÉRENCE OFFICIELLE
+        column_mapping = get_groups_mapping()
+        df_export = df_groups.rename(columns=column_mapping)
+        df_export = df_export[get_groups_column_order()]
+        
+        # Export Power BI
+        df_export.to_excel(filename, sheet_name="Gitlab Groups", index=False)
         
         print(f"✅ {len(df_groups)} groupes → {filename}")
         return str(filename)
     
     def export_projects(self, df_projects: pd.DataFrame, project_type: str = "projects", clean_first: bool = False) -> str:
         """Exporte les projets - VERSION SIMPLE"""
-        if df_projects.empty:
-            print(f"⚠️ Aucun projet {project_type} à exporter")
-            return ""
-        
         # Nettoyer les anciens exports seulement si demandé
         if clean_first:
             self.clean_old_exports()
@@ -81,7 +113,20 @@ class GitLabExcelExporter:
         filename = self.export_dir / f"gitlab_{project_type}.xlsx"
         sheet_name = f"Gitlab {project_type.title()}"
         
-        df_projects.to_excel(filename, sheet_name=sheet_name, index=False)
+        if df_projects.empty:
+            # Créer un fichier vide avec en-têtes Power BI (RÉFÉRENCE CENTRALISÉE)
+            empty_df = pd.DataFrame(columns=get_projects_column_order())
+            empty_df.to_excel(filename, sheet_name=sheet_name, index=False)
+            print(f"⚠️ Aucun projet {project_type} trouvé - fichier vide créé → {filename}")
+            return str(filename)
+        
+        # Mapper les colonnes selon la RÉFÉRENCE OFFICIELLE
+        column_mapping = get_projects_mapping()
+        df_export = df_projects.rename(columns=column_mapping)
+        df_export = df_export[get_projects_column_order()]
+        
+        # Export Power BI
+        df_export.to_excel(filename, sheet_name=sheet_name, index=False)
         
         print(f"✅ {len(df_projects)} projets {project_type} → {filename}")
         return str(filename)

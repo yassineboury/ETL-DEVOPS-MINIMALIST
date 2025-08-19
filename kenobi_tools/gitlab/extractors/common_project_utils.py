@@ -33,18 +33,18 @@ def extract_all_projects(gl_client: python_gitlab.Gitlab, include_archived: bool
         data = []
         for project in projects:
             data.append({
-                'id Projet': project.id,
-                'Nom': project.name,
-                'Nom Complet': project.path_with_namespace,
-                'Description': getattr(project, 'description', '') or '',
-                'Visibilité': project.visibility,
-                'Archivé': 'Oui' if getattr(project, 'archived', False) else 'Non',
-                'Date Création': project.created_at,
-                'Date Dernière Activité': project.last_activity_at,
-                'URL Web': project.web_url,
-                'Langage Principal': getattr(project, 'default_branch', ''),
-                'Étoiles': getattr(project, 'star_count', 0),
-                'Forks': getattr(project, 'forks_count', 0)
+                'id_projet': project.id,
+                'nom': project.name,
+                'nom_complet': project.path_with_namespace,
+                'description': getattr(project, 'description', '') or '',
+                'visibilite': project.visibility,
+                'archive': 'Oui' if getattr(project, 'archived', False) else 'Non',
+                'date_creation': project.created_at,
+                'date_derniere_activite': project.last_activity_at,
+                'url_web': project.web_url,
+                'langage_principal': getattr(project, 'default_branch', ''),
+                'etoiles': getattr(project, 'star_count', 0),
+                'forks': getattr(project, 'forks_count', 0)
             })
         
         df = pd.DataFrame(data)

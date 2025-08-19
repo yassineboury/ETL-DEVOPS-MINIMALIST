@@ -77,7 +77,7 @@ def _process_single_user(user, include_blocked: bool) -> Optional[Dict[str, Any]
         if not include_blocked and user_state in ['blocked', 'deactivated']:
             return None
 
-        # Extraire les informations utilisateur
+        # Extraire les informations utilisateur essentielles
         return {
             'id_utilisateur': getattr(user, 'id', 0),
             'nom_utilisateur': getattr(user, 'username', 'N/A'),
@@ -87,15 +87,7 @@ def _process_single_user(user, include_blocked: bool) -> Optional[Dict[str, Any]
             'etat': UserFormatter.translate_state(user_state),
             'derniere_activite': format_gitlab_date(getattr(user, 'last_activity_on', None)),
             'derniere_connexion': format_gitlab_date(getattr(user, 'last_sign_in_at', None)),
-            'date_creation': format_gitlab_date(getattr(user, 'created_at', None)),
-            'confirmation_email': "Oui" if getattr(user, 'confirmed_at', None) else "Non",
-            'projets_crees': getattr(user, 'projects_limit', 0),
-            'identite_externe': "Oui" if getattr(user, 'external', False) else "Non",
-            'organisation': getattr(user, 'organization', '') or 'N/A',
-            'localisation': getattr(user, 'location', '') or 'N/A',
-            'site_web': getattr(user, 'web_url', '') or 'N/A',
-            'theme': getattr(user, 'theme_id', 1),
-            'couleur': getattr(user, 'color_scheme_id', 1)
+            'date_creation': format_gitlab_date(getattr(user, 'created_at', None))
         }
 
     except Exception as e:

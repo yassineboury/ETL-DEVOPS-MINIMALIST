@@ -27,7 +27,7 @@ def extract_archived_projects(gl_client: python_gitlab.Gitlab) -> pd.DataFrame:
         print("⚠️ Aucun projet trouvé")
         return pd.DataFrame()
     
-    # Filtrer uniquement les archivés
+    # Filtrer uniquement les archivés (noms techniques uniformisés)
     archive_condition = all_projects_df['archive'] == 'Oui' if 'archive' in all_projects_df.columns else pd.Series([False] * len(all_projects_df))
     path_condition = all_projects_df['nom_complet'].str.startswith('projets-archives/') if 'nom_complet' in all_projects_df.columns else pd.Series([False] * len(all_projects_df))
     

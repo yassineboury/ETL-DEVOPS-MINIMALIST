@@ -36,14 +36,14 @@ def extract_groups(gl_client: python_gitlab.Gitlab) -> pd.DataFrame:
                 continue
                 
             data.append({
-                'id Groupe': group.id,
-                'Nom': group.name,
-                'Chemin': group.path,
-                'Chemin Complet': group.full_path,
-                'Description': getattr(group, 'description', '') or '',
-                'Visibilité': group.visibility,
-                'Date Création': group.created_at,
-                'URL Web': group.web_url
+                'id_groupe': group.id,
+                'nom': group.name,
+                'chemin': group.path,
+                'chemin_complet': group.full_path,
+                'description': getattr(group, 'description', '') or '',
+                'visibilite': group.visibility,
+                'date_creation': group.created_at,
+                'url_web': group.web_url
             })
         
         df = pd.DataFrame(data)

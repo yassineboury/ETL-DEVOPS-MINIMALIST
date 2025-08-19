@@ -175,15 +175,47 @@ date_format = "%d/%m/%Y %H:%M:%S"
 # Résultat: "15/08/2025 14:30:52"
 ```
 
-### **🏷️ Noms Colonnes Power BI**
+### **🏷️ RÉFÉRENCE COLONNES POWER BI - DÉFINITIVE**
 ```python
-# Espaces autorisés, caractères spéciaux OK
-COLUMNS = {
-    "id_utilisateur": "id Utilisateur",
-    "nom_utilisateur": "Nom Utilisateur",
-    "date_creation": "Date Creation",
-    # Éviter: underscores, CamelCase
+# ⚠️ ATTENTION: CETTE SECTION EST LA RÉFÉRENCE ABSOLUE 
+# Ne JAMAIS modifier ces mappings sans validation utilisateur !
+
+# 👥 UTILISATEURS - Mapping colonnes techniques → Power BI
+USERS_COLUMN_MAPPING = {
+    'id_utilisateur': 'id Utilisateur',
+    'nom_utilisateur': 'Nom Utilisateur', 
+    'email': 'Email',
+    'nom_complet': 'Nom Complet',
+    'admin': 'Admin',
+    'etat': 'Etat',
+    'date_creation': 'Date Creation',
+    'derniere_activite': 'Date Derniere Activite',
+    'derniere_connexion': 'Date Derniere Connexion'
 }
+
+# 👥 GROUPES - Colonnes Power BI (déjà avec espaces)
+GROUPS_COLUMNS = [
+    'id Groupe', 'Nom', 'Chemin', 'Chemin Complet', 'Description',
+    'Visibilité', 'Date Création', 'URL Web'
+]
+
+# 📁 PROJETS - Colonnes Power BI (déjà avec espaces) 
+PROJECTS_COLUMNS = [
+    'id Projet', 'Nom', 'Nom Complet', 'Description', 'Visibilité',
+    'Archivé', 'Date Création', 'Date Dernière Activité', 'URL Web',
+    'Langage Principal', 'Étoiles', 'Forks'
+]
+
+# 📋 ORDRE COLONNES UTILISATEURS (OBLIGATOIRE)
+USERS_COLUMN_ORDER = [
+    'id Utilisateur', 'Nom Utilisateur', 'Email', 'Nom Complet', 'Admin',
+    'Etat', 'Date Creation', 'Date Derniere Activite', 'Date Derniere Connexion'
+]
+
+# 🚫 RÈGLES STRICTES:
+# - Utilisateurs: mapping underscores → espaces
+# - Groupes/Projets: déjà en format Power BI
+# - JAMAIS toucher à ces définitions sans accord
 ```
 
 ---
