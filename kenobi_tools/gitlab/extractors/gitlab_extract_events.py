@@ -9,6 +9,120 @@ Colonnes: 8 champs essentiels pour le suivi d'activité
 import pandas as pd
 from typing import Optional
 from kenobi_tools.utils.date_utils import format_date_columns
+from datetime import datetime
+
+
+def extract_gitlab_events_with_period(gl, limit: int = 100, after_date: Optional[str] = None) -> pd.DataFrame:
+    """
+    Extrait les événements GitLab avec filtrage par période
+    
+    Args:
+        gl: Client GitLab connecté
+        limit: Nombre maximum d'événements par projet
+        after_date: Date limite (format ISO), None pour tous
+        
+    Returns:
+        DataFrame avec colonnes techniques (format underscore)
+    """
+    try:
+        print("📥 Extraction des événements GitLab via projets...")
+        
+        after_datetime = None
+        if after_date:
+            after_datetime = datetime.fromisoformat(after_date.replace('Z', '+00:00'))
+            print(f"🗓️ Événements après le: {after_datetime.strftime('%d/%m/%Y')}")
+        
+        # Récupérer tous les projets accessibles
+        projects = gl.projects.list(all=True)
+        print(f"🔍 Analyse de {len(projects)} projets...")
+        
+        all_events = []
+        projects_cache = {}  # Cache pour éviter les appels API répétés
+        
+        # Extraire événements projet par projet
+        for project in projects:
+            try:
+                # Récupérer événements du projet (limite raisonnable par projet)
+                project_events = project.events.list(per_page=min(limit//10, 20), get_all=False)
+                
+                if project_events:
+                    # Cache du nom de projet
+                    projects_cache[project.id] = project.name
+                    
+                    for event in project_events:
+                        # Filtrer par date si spécifiée
+                        if after_datetime:
+                            event_date = datetime.fromisoformat(event.created_at.replace('Z', '+00:00'))
+                            if event_date < after_datetime:
+                                continue  # Ignorer les événements trop anciens
+                        
+                        all_events.append(event)
+                        
+            except Exception as e:
+                # Ignorer les erreurs de projets individuels (permissions, etc.)
+                continue
+        
+        print(f"🔄 Traitement de {len(all_events)} événements collectés...")
+        
+        if not all_events:
+            print("⚠️ Aucun événement trouvé pour cette période")
+            return pd.DataFrame()
+        
+        # Limiter le nombre total d'événements si nécessaire
+        if len(all_events) > limit:
+            # Trier par date (plus récents d'abord) et limiter
+            all_events.sort(key=lambda x: getattr(x, 'created_at', ''), reverse=True)
+            all_events = all_events[:limit]
+            print(f"📊 Limité aux {limit} événements les plus récents")
+        
+        data = []
+        
+        for event in all_events:
+            # Récupérer le nom du projet avec cache
+            project_name = _get_project_name_cached(
+                gl, event.project_id, projects_cache
+            )
+            
+            # Extraire informations de branche depuis push_data
+            branche = _extract_branch_info(event)
+            
+            # Extraire les données de l'événement
+            event_data = {
+                'id_evenement': event.id,
+                'type_action': event.action_name,
+                'id_projet': event.project_id,
+                'nom_projet': project_name,
+                'id_utilisateur': event.author_id,
+                'utilisateur': event.author_username,
+                'date_evenement': event.created_at,
+                'branche': branche
+            }
+            
+            data.append(event_data)
+        
+        # Créer DataFrame
+        df = pd.DataFrame(data)
+        
+        # Formater les dates en français
+        df = format_date_columns(df)
+        
+        # Statistiques des auteurs
+        authors = df['utilisateur'].unique()
+        print(f"✅ {len(df)} événements extraits de {len(authors)} utilisateurs différents")
+        
+        # Statistiques de dates
+        if after_date:
+            min_date = df['date_evenement'].min() if not df.empty else None
+            max_date = df['date_evenement'].max() if not df.empty else None
+            print(f"📅 Période effective: {min_date} → {max_date}")
+        
+        print(f"👥 Auteurs: {list(authors)[:10]}{'...' if len(authors) > 10 else ''}")
+        
+        return df
+        
+    except Exception as e:
+        print(f"❌ Erreur lors de l'extraction des événements: {e}")
+        return pd.DataFrame()
 
 
 def extract_gitlab_events(gl, limit: int = 100) -> pd.DataFrame:
@@ -175,23 +289,47 @@ def _extract_branch_info(event) -> Optional[str]:
         Nom de la branche ou None
     """
     try:
-        # Vérifier si l'événement a des données de push
+        # Méthode 1: Vérifier dans attributes.push_data (structure réelle GitLab)
+        if hasattr(event, 'attributes') and isinstance(event.attributes, dict):
+            push_data = event.attributes.get('push_data')
+            if push_data and isinstance(push_data, dict):
+                ref = push_data.get('ref')
+                if ref:
+                    # Le ref peut être 'refs/heads/branch-name' ou directement 'branch-name'
+                    if ref.startswith('refs/heads/'):
+                        return ref.replace('refs/heads/', '')
+                    return ref
+        
+        # Méthode 2: Vérifier si l'événement a un attribut push_data direct
         if hasattr(event, 'push_data') and event.push_data:
             push_data = event.push_data
             
-            # Extraire le nom de la branche depuis le ref
-            if hasattr(push_data, 'ref') and push_data.ref:
+            # Si c'est un dict
+            if isinstance(push_data, dict):
+                ref = push_data.get('ref')
+                if ref:
+                    if ref.startswith('refs/heads/'):
+                        return ref.replace('refs/heads/', '')
+                    return ref
+            
+            # Si c'est un objet avec attributs
+            elif hasattr(push_data, 'ref') and push_data.ref:
                 ref = push_data.ref
-                # Le ref est généralement au format 'refs/heads/branch-name'
                 if ref.startswith('refs/heads/'):
                     return ref.replace('refs/heads/', '')
-                # Parfois c'est juste le nom de la branche
                 return ref
         
-        # Pour les autres types d'événements, essayer de récupérer depuis target
+        # Méthode 3: Chercher dans target_title pour les merge requests
         if hasattr(event, 'target_type') and event.target_type == 'MergeRequest':
-            # Pour les MR, on pourrait extraire plus d'infos, mais c'est complexe
-            return None
+            if hasattr(event, 'target_title') and event.target_title:
+                # Les MR ont souvent le format "Merge branch 'feature' into 'main'"
+                title = event.target_title
+                if 'branch' in title.lower():
+                    # Extraire le nom de branche si possible
+                    import re
+                    match = re.search(r"'([^']+)'", title)
+                    if match:
+                        return match.group(1)
         
         return None
         

@@ -85,7 +85,7 @@ class MaestroKenobiOrchestrator:
 
         # Phase 2: Événements (si configuré)  
         if events_config and success:
-            success &= self.processor.process_events_extraction()
+            success &= self.processor.process_events_extraction(events_config)
 
         return self._finalize_extraction(success)
 
@@ -102,7 +102,7 @@ class MaestroKenobiOrchestrator:
 
         # Événements (si demandés)
         if config["include_events"] and config["events_config"] and success:
-            success &= self.processor.process_events_extraction()
+            success &= self.processor.process_events_extraction(config["events_config"])
 
         return self._finalize_extraction(success)
 

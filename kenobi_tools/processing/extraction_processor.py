@@ -4,7 +4,7 @@ Orchestration simple sans statistiques ni complexité
 Complexité cognitive visée: ≤ 10
 """
 from pathlib import Path
-from typing import Optional
+from typing import Optional, Dict, Any
 import pandas as pd
 
 from ..gitlab.client.gitlab_client import GitLabClient
@@ -73,9 +73,12 @@ class ExtractionProcessor:
             print(f"❌ Erreur extraction: {e}")
             return False
 
-    def process_events_extraction(self) -> bool:
+    def process_events_extraction(self, events_config: Optional[Dict[str, Any]] = None) -> bool:
         """
-        Extraction d'événements GitLab avec limite configurable
+        Extraction d'événements GitLab avec période configurable
+        
+        Args:
+            events_config: Configuration de période depuis le menu
         
         Returns:
             True si succès, False sinon
@@ -88,13 +91,22 @@ class ExtractionProcessor:
             gl = client.connect()
             
             # Importation de l'extracteur d'événements
-            from kenobi_tools.gitlab.extractors.gitlab_extract_events import extract_gitlab_events
+            from kenobi_tools.gitlab.extractors.gitlab_extract_events import extract_gitlab_events_with_period
             
-            # Extraction avec limite augmentée pour récupérer plus d'événements
-            df_events = extract_gitlab_events(gl, limit=500)
+            # Paramètres de période
+            after_date = None
+            period_name = "Tous"
+            
+            if events_config:
+                after_date = events_config.get("after_date")
+                period_name = events_config.get("name", "Période personnalisée")
+                print(f"🗓️ Période sélectionnée: {period_name}")
+            
+            # Extraction avec période
+            df_events = extract_gitlab_events_with_period(gl, limit=500, after_date=after_date)
             
             if df_events.empty:
-                print("⚠️ Aucun événement extrait")
+                print("⚠️ Aucun événement extrait pour cette période")
                 return True  # Pas d'erreur, juste pas de données
             
             # Initialiser l'exporteur
@@ -106,6 +118,7 @@ class ExtractionProcessor:
             
             if filename:
                 print(f"✅ Événements exportés: {filename}")
+                print(f"📊 Période: {period_name}")
                 return True
             else:
                 print("❌ Échec de l'export des événements")
