@@ -32,12 +32,11 @@ USERS_COLUMN_ORDER = [
 GROUPS_COLUMN_MAPPING = {
     'id_groupe': 'id Groupe',
     'nom': 'Nom',
-    'chemin': 'Chemin', 
+    'nom_complet': 'Nom Complet',
     'chemin_complet': 'Chemin Complet',
-    'description': 'Description',
-    'visibilite': 'Visibilité',
-    'date_creation': 'Date Création',
-    'url_web': 'URL Web'
+    'parent_name': 'Groupe Parent',
+    'archive': 'Archivé',
+    'date_creation': 'Date Création'
 }
 
 # 📁 PROJETS - Mapping colonnes techniques → Power BI
@@ -45,27 +44,23 @@ PROJECTS_COLUMN_MAPPING = {
     'id_projet': 'id Projet',
     'nom': 'Nom',
     'nom_complet': 'Nom Complet',
-    'description': 'Description', 
-    'visibilite': 'Visibilité',
     'archive': 'Archivé',
     'date_creation': 'Date Création',
     'date_derniere_activite': 'Date Dernière Activité',
-    'url_web': 'URL Web',
-    'langage_principal': 'Langage Principal',
-    'etoiles': 'Étoiles',
-    'forks': 'Forks'
+    'total_branches': 'Total Branches',
+    'type_namespace': 'Type Namespace'
 }
 
 # 📋 ORDRE COLONNES POWER BI (OBLIGATOIRE)
 GROUPS_COLUMN_ORDER = [
-    'id Groupe', 'Nom', 'Chemin', 'Chemin Complet', 'Description',
-    'Visibilité', 'Date Création', 'URL Web'
+    'id Groupe', 'Nom', 'Nom Complet', 'Chemin Complet', 'Groupe Parent', 
+    'Archivé', 'Date Création'
 ]
 
 PROJECTS_COLUMN_ORDER = [
-    'id Projet', 'Nom', 'Nom Complet', 'Description', 'Visibilité',
-    'Archivé', 'Date Création', 'Date Dernière Activité', 'URL Web',
-    'Langage Principal', 'Étoiles', 'Forks'
+    'id Projet', 'Nom', 'Nom Complet',
+    'Archivé', 'Date Création', 'Date Dernière Activité',
+    'Total Branches', 'Type Namespace'
 ]
 
 # 👥 GROUPES - Colonnes Power BI (déjà formatées) - OBSOLÈTE
@@ -76,9 +71,21 @@ PROJECTS_COLUMNS = PROJECTS_COLUMN_ORDER
 
 # 📅 ÉVÉNEMENTS - Colonnes Power BI (si activés)
 EVENTS_COLUMNS = [
-    'id Événement', 'Type Action', 'Nom Projet', 'Utilisateur', 
-    'Date Événement', 'Détails', 'URL Cible'
+    'id Événement', 'Type Action', 'id Projet', 'Nom Projet', 
+    'id Utilisateur', 'Utilisateur', 'Date Événement', 'Branche'
 ]
+
+# 📅 ÉVÉNEMENTS - Mapping colonnes techniques → Power BI
+EVENTS_COLUMN_MAPPING = {
+    'id_evenement': 'id Événement',
+    'type_action': 'Type Action',
+    'id_projet': 'id Projet',
+    'nom_projet': 'Nom Projet',
+    'id_utilisateur': 'id Utilisateur',
+    'utilisateur': 'Utilisateur',
+    'date_evenement': 'Date Événement',
+    'branche': 'Branche'
+}
 
 
 def get_users_mapping():
@@ -109,6 +116,16 @@ def get_groups_column_order():
 def get_projects_column_order():
     """Retourne l'ordre des colonnes projets pour Power BI"""
     return PROJECTS_COLUMN_ORDER.copy()
+
+
+def get_events_mapping():
+    """Retourne le mapping événements technique → Power BI"""
+    return EVENTS_COLUMN_MAPPING.copy()
+
+
+def get_events_column_order():
+    """Retourne l'ordre des colonnes événements pour Power BI"""
+    return EVENTS_COLUMNS.copy()
 
 
 def validate_users_columns(df_columns: list) -> bool:
@@ -160,6 +177,7 @@ if __name__ == "__main__":
     print("📋 RÉFÉRENCE COLONNES POWER BI")
     print("=" * 50)
     print(f"👥 Utilisateurs: {len(USERS_COLUMN_MAPPING)} colonnes")
-    print(f"👥 Groupes: {len(GROUPS_COLUMNS)} colonnes") 
-    print(f"📁 Projets: {len(PROJECTS_COLUMNS)} colonnes")
+    print(f"👥 Groupes: {len(GROUPS_COLUMN_MAPPING)} colonnes") 
+    print(f"📁 Projets: {len(PROJECTS_COLUMN_MAPPING)} colonnes")
+    print(f"📅 Événements: {len(EVENTS_COLUMN_MAPPING)} colonnes")
     print("\n✅ Référence chargée avec succès")

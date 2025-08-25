@@ -111,7 +111,14 @@ class GitLabExcelExporter:
             self.clean_old_exports()
         
         filename = self.export_dir / f"gitlab_{project_type}.xlsx"
-        sheet_name = f"Gitlab {project_type.title()}"
+        
+        # Noms de feuilles fixes selon la spécification
+        if "active" in project_type.lower():
+            sheet_name = "Gitlab Active Projects"
+        elif "archived" in project_type.lower():
+            sheet_name = "Gitlab Archived Projects"
+        else:
+            sheet_name = "Gitlab Projects"
         
         if df_projects.empty:
             # Créer un fichier vide avec en-têtes Power BI (RÉFÉRENCE CENTRALISÉE)
@@ -132,7 +139,7 @@ class GitLabExcelExporter:
         return str(filename)
     
     def export_events(self, df_events: pd.DataFrame, clean_first: bool = False) -> str:
-        """Exporte les événements - VERSION SIMPLE"""
+        """Exporte les événements avec mapping Power BI"""
         if df_events.empty:
             print("⚠️ Aucun événement à exporter")
             return ""
@@ -143,7 +150,17 @@ class GitLabExcelExporter:
         
         filename = self.export_dir / "gitlab_events.xlsx"
         
-        df_events.to_excel(filename, sheet_name="Gitlab Events", index=False)
+        # Appliquer le mapping Power BI
+        from kenobi_tools.utils.column_mappings import get_events_mapping, get_events_column_order
+        mapping = get_events_mapping()
+        df_export = df_events.rename(columns=mapping)
+        
+        # Réorganiser les colonnes dans l'ordre validé
+        column_order = get_events_column_order()
+        df_export = df_export.reindex(columns=column_order)
+        
+        # Export avec nom d'onglet Power BI
+        df_export.to_excel(filename, sheet_name="Gitlab Events", index=False)
         
         print(f"✅ {len(df_events)} événements → {filename}")
         return str(filename)

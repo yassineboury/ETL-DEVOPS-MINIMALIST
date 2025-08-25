@@ -75,27 +75,41 @@ class ExtractionProcessor:
 
     def process_events_extraction(self) -> bool:
         """
-        Extraction d'événements - VERSION COMPLÈTE
+        Extraction d'événements GitLab avec limite configurable
         
         Returns:
             True si succès, False sinon
         """
-        print("📅 Extraction événements...")
+        print("📅 Extraction événements GitLab...")
         
         try:
             # Connexion GitLab
             client = GitLabClient()
             gl = client.connect()
             
+            # Importation de l'extracteur d'événements
+            from kenobi_tools.gitlab.extractors.gitlab_extract_events import extract_gitlab_events
+            
+            # Extraction avec limite augmentée pour récupérer plus d'événements
+            df_events = extract_gitlab_events(gl, limit=500)
+            
+            if df_events.empty:
+                print("⚠️ Aucun événement extrait")
+                return True  # Pas d'erreur, juste pas de données
+            
             # Initialiser l'exporteur
             exports_dir = Path(__file__).parent.parent.parent / "exports" / "gitlab"
             exporter = GitLabExcelExporter(exports_dir)
             
-            # Pour les événements, on peut extraire un sample ou faire une extraction basique
-            print("⚠️ Extraction événements désactivée temporairement")
-            print("📊 Utilisez Power BI pour l'analyse temporelle des événements")
+            # Export Excel avec mapping Power BI
+            filename = exporter.export_events(df_events)
             
-            return True
+            if filename:
+                print(f"✅ Événements exportés: {filename}")
+                return True
+            else:
+                print("❌ Échec de l'export des événements")
+                return False
             
         except Exception as e:
             print(f"❌ Erreur extraction événements: {e}")

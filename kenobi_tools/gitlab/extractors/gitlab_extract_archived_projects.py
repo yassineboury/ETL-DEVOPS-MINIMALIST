@@ -5,7 +5,7 @@ Complexité cognitive visée: ≤ 8
 """
 import pandas as pd
 import gitlab as python_gitlab
-from .common_project_utils import extract_all_projects
+from .gitlab_project_utils import extract_all_projects
 
 
 def extract_archived_projects(gl_client: python_gitlab.Gitlab) -> pd.DataFrame:

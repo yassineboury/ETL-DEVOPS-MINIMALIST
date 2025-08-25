@@ -71,7 +71,7 @@ class DateFormatter:
         date_columns = [
             'created_at', 'updated_at', 'last_activity_on',
             'last_sign_in_at', 'date_creation', 'derniere_activite',
-            'derniere_connexion'
+            'derniere_connexion', 'date_evenement', 'date_derniere_activite'
         ]
         
         df_copy = df.copy()

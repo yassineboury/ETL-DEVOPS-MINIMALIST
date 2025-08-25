@@ -22,8 +22,8 @@ def extract_all_projects(gl_client: python_gitlab.Gitlab, include_archived: bool
     try:
         print(f"🔍 Extraction projets (archivés: {'Oui' if include_archived else 'Non'})...")
         
-        # Récupération des projets avec statistiques
-        projects = gl_client.projects.list(all=True, archived=include_archived, statistics=True)
+        # Récupération des projets
+        projects = gl_client.projects.list(all=True, archived=include_archived)
         
         if not projects:
             print("⚠️ Aucun projet trouvé")
@@ -49,16 +49,6 @@ def extract_all_projects(gl_client: python_gitlab.Gitlab, include_archived: bool
             except:
                 pass
             
-            # Taille du repository - CORRECTION: récupérer via statistics dict
-            repo_size = 0
-            try:
-                if hasattr(project, 'statistics') and project.statistics:
-                    stats = project.statistics
-                    if isinstance(stats, dict) and 'repository_size' in stats:
-                        repo_size = stats['repository_size']
-            except:
-                pass
-            
             data.append({
                 'id_projet': project.id,
                 'nom': project.name,
@@ -66,10 +56,8 @@ def extract_all_projects(gl_client: python_gitlab.Gitlab, include_archived: bool
                 'archive': 'Oui' if getattr(project, 'archived', False) else 'Non',
                 'date_creation': project.created_at,
                 'date_derniere_activite': project.last_activity_at,
-                'langage_principal': getattr(project, 'default_branch', 'main'),  # Branche par défaut
                 'total_branches': branches_count,
-                'type_namespace': namespace_type,
-                'taille_repo': repo_size
+                'type_namespace': namespace_type
             })
         
         df = pd.DataFrame(data)

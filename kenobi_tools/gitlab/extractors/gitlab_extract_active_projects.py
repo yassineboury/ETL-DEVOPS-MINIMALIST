@@ -1,13 +1,13 @@
 """
 Extracteur de projets actifs GitLab
 Module pour extraire les informations des projets actifs GitLab (non archivés)
-Refactorisé pour utiliser common_project_utils et éliminer la duplication
+Refactorisé pour utiliser gitlab_project_utils et éliminer la duplication
 """
 import pandas as pd
 import gitlab as python_gitlab
 from typing import Dict, Any
 
-from .common_project_utils import extract_all_projects
+from .gitlab_project_utils import extract_all_projects
 from ...utils.constants import STATUS_YES, STATUS_NO, PROJETS_ARCHIVES_PATH
 
 

@@ -34,16 +34,24 @@ def extract_groups(gl_client: python_gitlab.Gitlab) -> pd.DataFrame:
             # Ignorer les archives
             if _is_archive_group(group.full_path):
                 continue
+            
+            # Récupérer le nom du groupe parent
+            parent_name = 'N/A'
+            try:
+                if hasattr(group, 'parent_id') and group.parent_id:
+                    parent_group = gl_client.groups.get(group.parent_id)
+                    parent_name = parent_group.name
+            except:
+                pass
                 
             data.append({
                 'id_groupe': group.id,
                 'nom': group.name,
-                'chemin': group.path,
+                'nom_complet': getattr(group, 'full_name', group.name),
                 'chemin_complet': group.full_path,
-                'description': getattr(group, 'description', '') or '',
-                'visibilite': group.visibility,
-                'date_creation': group.created_at,
-                'url_web': group.web_url
+                'parent_name': parent_name,
+                'archive': 'Oui' if getattr(group, 'archived', False) else 'Non',
+                'date_creation': group.created_at
             })
         
         df = pd.DataFrame(data)
