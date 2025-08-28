@@ -41,39 +41,32 @@ class MaestroKenobiOrchestrator:
         self.processor = ExtractionProcessor()
 
     def run_intelligent_extraction(self) -> bool:
-        """Point d'entrée principal avec menu intelligent"""
+        """Point d'entrée principal avec interface simplifiée"""
         self.menu.show_welcome_banner()
 
-        # Menu principal
-        mode = self.menu.show_main_menu()
+        # Menu principal simplifié - retourne bool directement
+        proceed = self.menu.show_main_menu()
 
-        if mode == "1":
-            return self._run_complete_mode()
+        if proceed:
+            return self._execute_full_extraction()
         else:
-            return self._run_custom_mode()
-
-    def _run_complete_mode(self) -> bool:
-        """Mode complet avec affichage épuré des étapes"""
-        # Étape 1: Choix de période pour les événements
-        print("\n    📋 Configuration des événements")
-        events_config = self.menu.show_events_period_menu()
-
-        # Étape 2 & 3: Récapitulatif et confirmation
-        confirmed = self.menu.show_complete_mode_steps(events_config)
-        if not confirmed:
             print("    ❌ Extraction annulée")
             return False
 
-        # Lancer l'extraction complète
-        return self._execute_complete_extraction(events_config)
+    def _execute_full_extraction(self) -> bool:
+        """Exécute l'extraction complète avec choix de période pour les événements"""
+        # Étape 1: Configuration des événements
+        print("\n    📋 Configuration des événements")
+        events_config = self.menu.show_events_period_menu()
 
-    def _run_custom_mode(self) -> bool:
-        """Mode personnalisé avec gestion modulaire"""
-        config = self.menu.show_custom_menu()
-        return self._execute_custom_extraction(config)
+        # Étape 2: Validation et lancement direct
+        if not events_config:
+            print("    ❌ Configuration des événements échouée")
+            return False
 
-    def _execute_complete_extraction(self, events_config: Dict[str, Any] | None) -> bool:
-        """Exécute l'extraction complète"""
+        print(f"\n    ✅ Configuration terminée: {events_config['name']}")
+        
+        # Étape 3: Exécution directe
         if not self._setup_gitlab_connection():
             return False
 
@@ -83,26 +76,9 @@ class MaestroKenobiOrchestrator:
         print("\n🚀 Début de l'extraction complète...")
         success = self.processor.process_all_data(self.exports_dir)
 
-        # Phase 2: Événements (si configuré)  
+        # Phase 2: Événements 
         if events_config and success:
             success &= self.processor.process_events_extraction(events_config)
-
-        return self._finalize_extraction(success)
-
-    def _execute_custom_extraction(self, config: Dict[str, Any]) -> bool:
-        """Exécute l'extraction personnalisée"""
-        if not self._setup_gitlab_connection():
-            return False
-
-        success = True
-
-        # Données de base (toujours incluses)
-        if config["include_base"]:
-            success = self.processor.process_all_data(self.exports_dir)
-
-        # Événements (si demandés)
-        if config["include_events"] and config["events_config"] and success:
-            success &= self.processor.process_events_extraction(config["events_config"])
 
         return self._finalize_extraction(success)
 

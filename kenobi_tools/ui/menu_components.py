@@ -56,28 +56,26 @@ class MenuComponents:
         print("\n\n")
 
     @staticmethod
-    def show_main_menu() -> str:
-        """Menu principal fluide sans bordures"""
-        print("           MODES D'EXTRACTION")
-        print("    " + "─" * 35)
+    def show_main_menu() -> bool:
+        """Menu principal simplifié - extraction complète directe"""
+        print("           🚀 EXTRACTION GITLAB COMPLÈTE")
+        print("    " + "─" * 40)
         print("\n")
 
-        print("    🚀 MODE COMPLET                    [Recommandé]")
-        print("       ├─ 👥 Utilisateurs & Groupes")
-        print("       ├─ 📁 Projets (actifs + archivés)")
-        print("       ├─ 📊 Événements avec période configurable")
-        print("       └─ ⏱️  Durée: 5-20 minutes")
+        print("    � DONNÉES EXTRAITES AUTOMATIQUEMENT:")
+        print("       ├─ 👥 Utilisateurs GitLab (~30s)")
+        print("       ├─ 🏢 Groupes et sous-groupes (~20s)")
+        print("       ├─ 📁 Projets actifs + archivés (~45s)")
+        print("       └─ � Événements avec période configurable")
         print("\n")
-
-        print("    ⚙️  MODE PERSONNALISÉ                  [Avancé]")
-        print("       ├─ 🎛️  Sélection modulaire des données")
-        print("       ├─ 🔧 Contrôle fin des extracteurs")
-        print("       └─ ⏱️  Durée: Variable selon sélection")
+        
+        print("    ⏱️  Durée estimée: 5-20 minutes")
+        print("    � Export: Fichiers Excel Power BI ready")
         print("\n")
         print("    " + "─" * 43)
         print("")
 
-        return MenuComponents._get_menu_choice(["1", "2"], "🎯 Votre choix (1 ou 2) ► ")
+        return MenuComponents._get_yes_no_choice("🚀 Lancer l'extraction complète ? (o/n) ► ")
 
     @staticmethod
     def show_events_period_menu() -> Dict[str, Any] | None:
@@ -109,75 +107,6 @@ class MenuComponents:
                 "before_date": config["before_date"]
             }
         return None
-
-    @staticmethod
-    def show_custom_menu() -> Dict[str, Any]:
-        """Menu personnalisé fluide sans bordures"""
-        print("\n")
-        print("            MODE PERSONNALISÉ")
-        print("    " + "─" * 30)
-        print("\n")
-        print("    📊 DONNÉES DE BASE (obligatoires)")
-        print("       • 👥 Utilisateurs GitLab (~30s)")
-        print("       • 🏢 Groupes et sous-groupes (~20s)")
-        print("       • 📁 Projets actifs + archivés (~45s)")
-        print("\n")
-        print("    📈 DONNÉES D'ACTIVITÉ (optionnelles)")
-        print("       • 🔄 Événements GitLab (2-30min)")
-        print("         Push, merge, issues, commentaires...")
-        print("\n")
-
-        # Choix avec confirmation visuelle
-        print("    🎯 Configuration:")
-        print("       ✅ Données de base: Incluses automatiquement")
-        print("")
-
-        events_choice = MenuComponents._get_yes_no_choice(
-            "📈 Inclure les événements ? (o/n) ► "
-        )
-
-        config = {
-            "include_base": True,
-            "include_events": events_choice,
-            "events_config": None
-        }
-
-        if config["include_events"]:
-            print("  ✅ Événements: Activés")
-            config["events_config"] = MenuComponents.show_events_period_menu()
-        else:
-            print("  ❌ Événements: Désactivés")
-
-        return config
-
-    @staticmethod
-    def show_complete_mode_steps(events_config: Dict[str, Any] | None) -> bool:
-        """Affichage des étapes du mode complet avec confirmation"""
-        print("\n\n")
-        print("        🚀 MODE COMPLET SÉLECTIONNÉ")
-        print("    " + "─" * 35)
-        print("")
-
-        # Étape 2: Affichage du récapitulatif
-        print("\n    📋 Récapitulatif de configuration")
-        print("        ✅ Configuration choisie")
-        print("    " + "─" * 30)
-        print("")
-        print("      📊 Données: Base + Activité")
-        print("         • 👥 Utilisateurs")
-        print("         • 🏢 Groupes")
-        print("         • 📁 Projets (actifs + archivés)")
-        if events_config:
-            print(f"         • 📅 Événements: {events_config['name']}")
-        else:
-            print("         • 📅 Événements: Non configuré")
-        print("\n")
-
-        # Étape 3: Confirmation et lancement
-        print("    📋 Confirmation")
-        print("")
-        
-        return MenuComponents._get_yes_no_choice("🚀 Lancer l'extraction ? (o/n) ► ")
 
     @staticmethod
     def _get_menu_choice(valid_choices: list, prompt: str) -> str:
