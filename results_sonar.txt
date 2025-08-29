@@ -1,0 +1,293 @@
+EXTRACTION SONARQUBE FINALE
+==================================================
+URL: https://sonar.oncf.net
+Metriques definies: 18
+
+Recuperation des projets...
+OK 89 projets trouves
+Projets a traiter: 89
+
+[  1/89] BO_PDA_SERVER
+      ERREUR 404 pour BO_PDA_SERVER_KEY
+      -> 0 metriques - Partiel (0)
+[  2/89] SUPRATOURS_CLIENT
+      ERREUR 404 pour SUPRATOURS_CLIENT_KEY
+      -> 0 metriques - Partiel (0)
+[  3/89] Gateway_ECOM_MP
+      ERREUR 404 pour Gateway_ECOM_MP_KEY
+      -> 0 metriques - Partiel (0)
+[  4/89] ONCF_PYTHON_PROJECT
+      ERREUR 404 pour ONCF_PYTHON_PROJECT_KEY
+      -> 0 metriques - Partiel (0)
+[  5/89] PGR_2255_WEBAPI
+      ERREUR 404 pour PGR_2255_WEBAPI_KEY
+      -> 0 metriques - Partiel (0)
+[  6/89] sgsi-backend
+      ERREUR 404 pour sgsi-backend_KEY
+      -> 0 metriques - Partiel (0)
+[  7/89] PGR_LATERAL_WEBAPI
+      ERREUR 404 pour PGR_LATERAL_WEBAPI_KEY
+      -> 0 metriques - Partiel (0)
+[  8/89] MONCFPROXY
+      ERREUR 404 pour MONCFPROXY_KEY
+      -> 0 metriques - Partiel (0)
+[  9/89] PGR_2255_WEBSITE
+      ERREUR 404 pour PGR_2255_WEBSITE_KEY
+      -> 0 metriques - Partiel (0)
+[ 10/89] ONCF_VOYAGE_CACHE
+      ERREUR 404 pour ONCF_VOYAGE_CACHE_KEY
+      -> 0 metriques - Partiel (0)
+[ 11/89] PROCEDURES_FRETNET
+      ERREUR 404 pour PROCEDURES_FRETNET_KEY
+      -> 0 metriques - Partiel (0)
+[ 12/89] DAT_BACKEND_GATEWAY_SIV
+      ERREUR 404 pour DAT_BACKEND_GATEWAY_SIV_KEY
+      -> 0 metriques - Partiel (0)
+[ 13/89] journal-et-fiche-train
+      ERREUR 404 pour JFT_KEY
+      -> 0 metriques - Partiel (0)
+[ 14/89] DATWEBSERVICE
+      ERREUR 404 pour DATWEBSERVICE_KEY
+      -> 0 metriques - Partiel (0)
+[ 15/89] GPlog_New
+      ERREUR 404 pour GPlog_New
+      -> 0 metriques - Partiel (0)
+[ 16/89] DAT_BO_API
+      ERREUR 404 pour DAT_BO_API_KEY
+      -> 0 metriques - Partiel (0)
+[ 17/89] DAT_BACKEND_REFERENTIEL
+      ERREUR 404 pour DAT_BACKEND_REFERENTIEL_KEY
+      -> 0 metriques - Partiel (0)
+[ 18/89] EMSFRONTEND
+      ERREUR 404 pour EMS-FRONTEND-KEY
+      -> 0 metriques - Partiel (0)
+[ 19/89] GESTION_ENREGISTREMENT_FRONTEND
+      ERREUR 404 pour GESTION_ENREGISTREMENT_FRONTEND_KEY
+      -> 0 metriques - Partiel (0)
+[ 20/89] WS_Retard_ONCFTrafic
+      ERREUR 404 pour WS_Retard_ONCFTrafic_KEY
+      -> 0 metriques - Partiel (0)
+[ 21/89] BO_PDA_CLIENT
+      ERREUR 404 pour BO_PDA_CLIENT_KEY
+      -> 0 metriques - Partiel (0)
+[ 22/89] IntegrationGMV
+      ERREUR 404 pour IntegrationGMV_KEY
+      -> 0 metriques - Partiel (0)
+[ 23/89] MONCFGATEWAY
+      ERREUR 404 pour MONCFGATEWAY_KEY
+      -> 0 metriques - Partiel (0)
+[ 24/89] PORTAIL_EXPRESS
+      ERREUR 404 pour PORTAIL_EXPRESS_KEY
+      -> 0 metriques - Partiel (0)
+[ 25/89] SMSF_BACKEND
+      ERREUR 404 pour SMSF_BACKEND_KEY
+      -> 0 metriques - Partiel (0)
+[ 26/89] ONCF TRAFIC BACKEND
+      ERREUR 404 pour ONCFTRAFICBACKEND_KEY
+      -> 0 metriques - Partiel (0)
+[ 27/89] ONCF_VOYAGE_SERVER
+      ERREUR 404 pour ONCF_VOYAGE_SERVER_KEY
+      -> 0 metriques - Partiel (0)
+[ 28/89] ONCF TRAFIC MOBILE
+      ERREUR 404 pour ONCF_TRAFIC_MOBILE_KEY
+      -> 0 metriques - Partiel (0)
+[ 29/89] DATONCFTICKETPRINTE
+      ERREUR 404 pour DATONCFTICKETPRINTE_KEY
+      -> 0 metriques - Partiel (0)
+[ 30/89] PGP_FO_WEBAPI
+      ERREUR 404 pour PGP_FO_WEBAPI_KEY
+      -> 0 metriques - Partiel (0)
+[ 31/89] ONCF_DOTNET_PROJECT
+      ERREUR 404 pour ONCF_DOTNET_PROJECT_KEY
+      -> 0 metriques - Partiel (0)
+[ 32/89] EXPRONCF_FRONT
+      ERREUR 404 pour EXPRONCF_FRONT_KEY
+      -> 0 metriques - Partiel (0)
+[ 33/89] ONCFDATFRONT
+      ERREUR 404 pour ONCFDATFRONT_KEY
+      -> 0 metriques - Partiel (0)
+[ 34/89] ONCF TRAFIC Backend
+      ERREUR 404 pour com.company.oncftraficbackend
+      -> 0 metriques - Partiel (0)
+[ 35/89] DematRH
+      ERREUR 404 pour DematRH_KEY
+      -> 0 metriques - Partiel (0)
+[ 36/89] DAT_BACKEND_DISPONIBILITY
+      ERREUR 404 pour DAT_BACKEND_DISPONIBILITY_KEY
+      -> 0 metriques - Partiel (0)
+[ 37/89] PGP_FO_WEBSITE
+      ERREUR 404 pour PGP_FO_WEBSITE_KEY
+      -> 0 metriques - Partiel (0)
+[ 38/89] SITE_WEB_ONCF
+      ERREUR 404 pour SITE_WEB_ONCF_KEY
+      -> 0 metriques - Partiel (0)
+[ 39/89] Felog
+      ERREUR 404 pour Felog_KEY
+      -> 0 metriques - Partiel (0)
+[ 40/89] EXPRONCF_FRONTEND_V2
+      ERREUR 404 pour EXPRONCF_FRONTEND_V2_KEY
+      -> 0 metriques - Partiel (0)
+[ 41/89] SIVPLANENVIGUEUR
+      ERREUR 404 pour SIVPLANENVIGUEUR_KEY
+      -> 0 metriques - Partiel (0)
+[ 42/89] GESTION_ENREGISTREMENT_BACKEND
+      ERREUR 404 pour GESTION_ENREGISTREMENT_BACKEND_KEY
+      -> 0 metriques - Partiel (0)
+[ 43/89] TELEAFFICHAGELOADING
+      ERREUR 404 pour TELEAFFICHAGELOADING_KEY
+      -> 0 metriques - Partiel (0)
+[ 44/89] ONCF_JAVA_PROJECT
+      ERREUR 404 pour ONCF_JAVA_PROJECT_KEY
+      -> 0 metriques - Partiel (0)
+[ 45/89] CHATBOT_DASHBOARD
+      ERREUR 404 pour CHATBOT_DASHBOARD_KEY
+      -> 0 metriques - Partiel (0)
+[ 46/89] MONCFFRONT
+      ERREUR 404 pour MONCFFRONT_KEY
+      -> 0 metriques - Partiel (0)
+[ 47/89] infos-trafic-WEB-project
+      ERREUR 404 pour smi-project
+      -> 0 metriques - Partiel (0)
+[ 48/89] SERVICECOMPOTOSIV
+      ERREUR 404 pour SERVICECOMPOTOSIV_KEY
+      -> 0 metriques - Partiel (0)
+[ 49/89] ONCF_MOBILE_BACK
+      ERREUR 404 pour ONCF_MOBILE_BACK_KEY
+      -> 0 metriques - Partiel (0)
+[ 50/89] MONCFQUERYDB
+      ERREUR 404 pour MONCFQUERYDB_KEY
+      -> 0 metriques - Partiel (0)
+[ 51/89] SQLTEST
+      ERREUR 404 pour SQLTEST-KEY
+      -> 0 metriques - Partiel (0)
+[ 52/89] API_HORAIRE
+      ERREUR 404 pour API_HORAIRE_KEY
+      -> 0 metriques - Partiel (0)
+[ 53/89] POC_REDIRECT
+      ERREUR 404 pour POC_REDIRECT_KEY
+      -> 0 metriques - Partiel (0)
+[ 54/89] SUPRATOURS_SERVER
+      ERREUR 404 pour SUPRATOURS_SERVER_KEY
+      -> 0 metriques - Partiel (0)
+[ 55/89] SERVICEINTEGRATIONCIRCTOCOMPO
+      ERREUR 404 pour SERVICEINTEGRATIONCIRCTOCOMPO_KEY
+      -> 0 metriques - Partiel (0)
+[ 56/89] ONCF_NODE_PROJECT
+      ERREUR 404 pour ONCF_NODE_PROJECT_KEY
+      -> 0 metriques - Partiel (0)
+[ 57/89] ONCFTRAFFIC_RETARD
+      ERREUR 404 pour ONCFTRAFFIC_RETARD_KEY
+      -> 0 metriques - Partiel (0)
+[ 58/89] EMSBACKEND
+      ERREUR 404 pour EMSBACKEND_KEY
+      -> 0 metriques - Partiel (0)
+[ 59/89] MONCFNLP
+      ERREUR 404 pour MONCFNLP_KEY
+      -> 0 metriques - Partiel (0)
+[ 60/89] GPLog
+      ERREUR 404 pour GPlog_KEY
+      -> 0 metriques - Partiel (0)
+[ 61/89] CompoTrains Reporting
+      ERREUR 404 pour CompoTrains-Reporting_KEY
+      -> 0 metriques - Partiel (0)
+[ 62/89] FretNet_Maintenance
+      ERREUR 404 pour FretNet_Maintenance_KEY
+      -> 0 metriques - Partiel (0)
+[ 63/89] oncf voyages gateway
+      ERREUR 404 pour sivogateway
+      -> 0 metriques - Partiel (0)
+[ 64/89] SYSCO
+      ERREUR 404 pour SYSCO_KEY
+      -> 0 metriques - Partiel (0)
+[ 65/89] SGSI_FRONT_FRONT
+      ERREUR 404 pour SGSI_FRONT_KEY
+      -> 0 metriques - Partiel (0)
+[ 66/89] CompoTrainVoyageurs Mobile
+      ERREUR 404 pour CompoTrainVoyageursMobile_KEY
+      -> 0 metriques - Partiel (0)
+[ 67/89] ONCF_MOBILE_FRONT
+      ERREUR 404 pour ONCF_MOBILE_FRONT_KEY
+      -> 0 metriques - Partiel (0)
+[ 68/89] ALARMEGMV
+      ERREUR 404 pour ALARMEGMV_KEY
+      -> 0 metriques - Partiel (0)
+[ 69/89] CFret
+      ERREUR 404 pour CFret_KEY
+      -> 0 metriques - Partiel (0)
+[ 70/89] PGR_LATERAL_WEBSITE
+      ERREUR 404 pour PGR_LATERAL_WEBSITE_KEY
+      -> 0 metriques - Partiel (0)
+[ 71/89] CompoTrainVoyageurs
+      ERREUR 404 pour CompoTrainVoyageurs_KEY
+      -> 0 metriques - Partiel (0)
+[ 72/89] ENGINS_DE_MESURE
+      ERREUR 404 pour ENGINS_DE_MESURE_KEY
+      -> 0 metriques - Partiel (0)
+[ 73/89] MONCFWIDGETWEB
+      ERREUR 404 pour MONCFWIDGETWEB_KEY
+      -> 0 metriques - Partiel (0)
+[ 74/89] MONCFFRONTROUTER
+      ERREUR 404 pour MONCFFRONTROUTER_KEY
+      -> 0 metriques - Partiel (0)
+[ 75/89] veille-concurrentielle
+      ERREUR 404 pour veille-concurrentielle_KEY
+      -> 0 metriques - Partiel (0)
+[ 76/89] SIDAM
+      ERREUR 404 pour SIDAM_KEY
+      -> 0 metriques - Partiel (0)
+[ 77/89] ONCF_VOYAGE_CLIENT
+      ERREUR 404 pour ONCF_VOYAGE_CLIENT_KEY
+      -> 0 metriques - Partiel (0)
+[ 78/89] NEW_DAT_FRONTEND
+      ERREUR 404 pour NEW_DAT_FRONTEND_KEY
+      -> 0 metriques - Partiel (0)
+[ 79/89] Phosphanet
+      ERREUR 404 pour Phosphanet_KEY
+      -> 0 metriques - Partiel (0)
+[ 80/89] oncf fretnet
+      ERREUR 404 pour ma.oncf.sifl.fretnet
+      -> 0 metriques - Partiel (0)
+[ 81/89] DAT_NEW_FRONT
+      ERREUR 404 pour DAT_NEW_FRONT_KEY
+      -> 0 metriques - Partiel (0)
+[ 82/89] PDA_ANDROID
+      ERREUR 404 pour PDA_ANDROID_KEY
+      -> 0 metriques - Partiel (0)
+[ 83/89] MFRET_FRONT
+      ERREUR 404 pour MFRET_FRONT_KEY
+      -> 0 metriques - Partiel (0)
+[ 84/89] INFOTRAFIC
+      ERREUR 404 pour INFOTRAFIC_KEY
+      -> 0 metriques - Partiel (0)
+[ 85/89] EXPRONCF_BACKEND_V2
+      ERREUR 404 pour EXPRONCF_BACKEND_V2_KEY
+      -> 0 metriques - Partiel (0)
+[ 86/89] CHATBOT-DASHBOARD
+      ERREUR 404 pour CHATBOT-DASHBOARD
+      -> 0 metriques - Partiel (0)
+[ 87/89] oncf-trafic-backoffic
+      ERREUR 404 pour oncf-trafic-backoffic_KEY
+      -> 0 metriques - Partiel (0)
+[ 88/89] SMSF_FRONTEND
+      ERREUR 404 pour SMSF_FRONTEND_KEY
+      -> 0 metriques - Partiel (0)
+[ 89/89] EXPRONCF_BACKEND
+      ERREUR 404 pour EXPRONCF_BACKEND_KEY
+      -> 0 metriques - Partiel (0)
+
+FORMATAGE DES DONNEES
+==============================
+OK DataFrame cree: 89 projets, 5 colonnes
+OK Export reussi: D:\SMI_DEVS\KENOBI_DEVOPS\exports\sonar\sonar_projects_final_20250829_125006.xlsx
+
+RESUME EXECUTIF SONARQUBE
+==================================================
+Total projets: 89
+Quality Gates:
+   ERROR: 71 (79.8%)
+   OK: 16 (18.0%)
+   NONE: 2 (2.2%)
+
+Donnees pretes pour analyse Power BI
+
+OK SUCCESS FINAL: D:\SMI_DEVS\KENOBI_DEVOPS\exports\sonar\sonar_projects_final_20250829_125006.xlsx
