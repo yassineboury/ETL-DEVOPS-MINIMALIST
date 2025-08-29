@@ -39,7 +39,7 @@ class SonarClient:
         """
         Établit la connexion à l'API SonarQube et la teste.
         
-        Returns:
+        Returns:oui
             Un client SonarQube authentifié.
         """
         if self.is_connected and self.client:
@@ -49,6 +49,8 @@ class SonarClient:
             print(f"🔗 Connexion à SonarQube: {self.sonar_url}")
             
             # Configuration SSL pour domaines internes
+            # Assertion de type : self.sonar_url ne peut pas être None ici car vérifié dans __init__
+            assert self.sonar_url is not None
             ssl_verify = not self._is_internal_domain(self.sonar_url)
             if not ssl_verify:
                 print("⚠️ Vérification SSL désactivée pour domaine interne")
