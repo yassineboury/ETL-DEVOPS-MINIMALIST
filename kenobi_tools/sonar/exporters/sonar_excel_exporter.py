@@ -9,9 +9,9 @@ import pandas as pd
 import glob
 import os
 
-from kenobi_tools.sonar.extractors.sonar_extract_projects import (
-    SONAR_PROJECTS_COLUMN_MAPPING,
-    SONAR_PROJECTS_COLUMN_ORDER
+from kenobi_tools.sonar.extractors.sonar_extract_metrics import (
+    SONAR_METRICS_COLUMN_MAPPING,
+    SONAR_METRICS_COLUMN_ORDER
 )
 
 
@@ -38,29 +38,54 @@ class SonarExcelExporter:
             except Exception as e:
                 print(f"⚠️ Impossible de supprimer {Path(file).name}: {e}")
     
-    def export_projects(self, df_projects: pd.DataFrame, clean_first: bool = False) -> str:
-        """Exporte les projets SonarQube - VERSION SIMPLE"""
+    def export_projects(self, df_metrics: pd.DataFrame, clean_first: bool = False) -> str:
+        """Exporte les métriques SonarQube complètes - VERSION SIMPLE"""
         # Nettoyer les anciens exports seulement si demandé
         if clean_first:
             self.clean_old_exports()
         
-        filename = self.export_dir / "sonar_projects.xlsx"
+        # Nom fixe comme GitLab (sans timestamp)
+        filename = self.export_dir / "sonar_metrics.xlsx"
         
-        if df_projects.empty:
+        if df_metrics.empty:
             # Créer un fichier vide avec en-têtes pour Power BI
-            empty_df = pd.DataFrame(columns=SONAR_PROJECTS_COLUMN_ORDER)
-            empty_df.to_excel(filename, sheet_name="Sonar Projects", index=False)
-            print(f"⚠️ Aucun projet trouvé - fichier vide créé → {filename}")
+            empty_df = pd.DataFrame(columns=SONAR_METRICS_COLUMN_ORDER)
+            empty_df.to_excel(filename, sheet_name="Sonar Metrics", index=False)
+            print(f"⚠️ Aucune métrique trouvée - fichier vide créé → {filename}")
             return str(filename)
         
         # Mapping des colonnes pour Power BI
-        df_export = df_projects.rename(columns=SONAR_PROJECTS_COLUMN_MAPPING)
+        df_export = df_metrics.rename(columns=SONAR_METRICS_COLUMN_MAPPING)
         
         # Réordonner les colonnes selon la spécification
-        df_export = df_export[SONAR_PROJECTS_COLUMN_ORDER]
+        df_export = df_export[SONAR_METRICS_COLUMN_ORDER]
         
         # Export basique - Power BI fait le reste
-        df_export.to_excel(filename, sheet_name="Sonar Projects", index=False)
+        df_export.to_excel(filename, sheet_name="Sonar Metrics", index=False)
         
-        print(f"✅ {len(df_projects)} projets → {filename}")
+        print(f"✅ {len(df_metrics)} métriques SonarQube → {filename}")
         return str(filename)
+
+
+def export_sonar_metrics_to_excel(df_metrics: pd.DataFrame, filename: Optional[str] = None) -> str:
+    """Export fonction utilitaire - comme dans GitLab"""
+    if filename:
+        # Pour tests uniquement - utiliser le répertoire sonar standard
+        current_dir = Path(__file__).parent.parent.parent.parent
+        export_dir = current_dir / "exports" / "sonar"
+        export_dir.mkdir(parents=True, exist_ok=True)
+        
+        # Nom fixe personnalisé (pour tests)
+        custom_path = export_dir / filename
+        
+        # Mapping Power BI
+        df_export = df_metrics.rename(columns=SONAR_METRICS_COLUMN_MAPPING)
+        df_export = df_export[SONAR_METRICS_COLUMN_ORDER]
+        
+        df_export.to_excel(custom_path, sheet_name="Sonar Metrics", index=False)
+        print(f"✅ Export SonarQube test: {custom_path}")
+        return str(custom_path)
+    else:
+        # Export standard
+        exporter = SonarExcelExporter()
+        return exporter.export_projects(df_metrics)
