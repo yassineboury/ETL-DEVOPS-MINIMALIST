@@ -1,11 +1,216 @@
 ---
 applyTo: '**'
 ---
+
+# 🚨 RÈGLES DE SÉCURITÉ CRITIQUES - INTERDICTIONS ABSOLUES
+
+## 🛑 **INTERDICTIONS FORMELLES - JAMAIS ENFREINDRE !**
+
+### **❌ INTERDICTION #1 : JAMAIS ÉCRASER DU CODE QUI FONCTIONNE**
+```bash
+# AVANT de modifier un fichier qui fonctionne :
+1. ✅ OBLIGATOIRE : Demander confirmation explicite à l'utilisateur
+2. ✅ OBLIGATOIRE : Proposer une sauvegarde/commit Git
+3. ✅ OBLIGATOIRE : Expliquer EXACTEMENT ce qui va être modifié
+4. ❌ JAMAIS remplacer une approche qui marche par une qui ne marche pas
+```
+
+### **❌ INTERDICTION #2 : JAMAIS CHANGER D'APPROCHE SANS ACCORD**
+```bash
+# Exemples d'approches à NE JAMAIS changer :
+- SonarClient custom → python-sonarqube-api (sans test préalable)
+- API REST directe → bibliothèque tierce (sans validation)
+- Méthode d'import fonctionnelle → nouvelle méthode (sans preuve)
+```
+
+### **❌ INTERDICTION #3 : JAMAIS CRÉER DE PROBLÈMES D'ENCODAGE**
+```bash
+# RÈGLES ENCODAGE :
+- ❌ JAMAIS utiliser des emojis dans le code Python
+- ❌ JAMAIS mélanger les encodages UTF-8/ASCII/CP1252
+- ✅ TOUJOURS utiliser ASCII pour les fichiers Python
+- ✅ TOUJOURS tester l'exécution après modification
+```
+
+### **❌ INTERDICTION #4 : JAMAIS CORRIGER CE QUI N'EST PAS CASSÉ**
+```bash
+# RÈGLE D'OR :
+Si ça marche → NE PAS TOUCHER !
+Si ça ne marche pas → Diagnostiquer AVANT de modifier
+```
+
+### **❌ INTERDICTION #5 : JAMAIS IGNORER LES ERREURS UTILISATEUR**
+```bash
+# Quand l'utilisateur dit "il y a un problème" :
+1. ✅ OBLIGATOIRE : Diagnostiquer EXACTEMENT le problème
+2. ✅ OBLIGATOIRE : Confirmer la cause root
+3. ✅ OBLIGATOIRE : Proposer une solution minimale
+4. ❌ JAMAIS partir sur une refactorisation complète
+```
+
+### **❌ INTERDICTION #6 : JAMAIS MODIFIER DU CODE SANS ACCORD**
+```bash
+# RÈGLE ABSOLUE : ZÉRO MODIFICATION SANS PERMISSION
+1. ✅ OBLIGATOIRE : Demander "Voulez-vous que je modifie ce fichier ?"
+2. ✅ OBLIGATOIRE : Expliquer EXACTEMENT ce qui sera changé
+3. ✅ OBLIGATOIRE : Attendre la réponse explicite "OUI" de l'utilisateur
+4. ❌ JAMAIS modifier même "pour corriger une petite erreur"
+```
+
+### **❌ INTERDICTION #7 : JAMAIS CRÉER UN FICHIER SANS ACCORD**
+```bash
+# RÈGLE ABSOLUE : ZÉRO CRÉATION SANS PERMISSION
+1. ✅ OBLIGATOIRE : Demander "Voulez-vous que je crée ce fichier ?"
+2. ✅ OBLIGATOIRE : Expliquer POURQUOI le fichier est nécessaire
+3. ✅ OBLIGATOIRE : Décrire le CONTENU qui sera créé
+4. ✅ OBLIGATOIRE : Attendre validation explicite utilisateur
+5. ❌ JAMAIS créer de fichiers "de test" ou "temporaires" sans accord
+```
+
+### **❌ INTERDICTION #8 : JAMAIS FAIRE DE MODIFICATIONS MULTIPLES**
+```bash
+# RÈGLE DE PRUDENCE EXTRÊME :
+1. ✅ UNE SEULE modification par demande utilisateur
+2. ✅ TESTER chaque modification séparément
+3. ✅ VALIDER que ça marche avant de continuer
+4. ❌ JAMAIS faire plusieurs changements d'un coup
+```
+
+### **❌ INTERDICTION #9 : JAMAIS SUPPOSER OU DEVINER**
+```bash
+# RÈGLE DE PRÉCISION ABSOLUE :
+1. ✅ TOUJOURS demander des clarifications si pas sûr
+2. ✅ CONFIRMER la compréhension avant d'agir
+3. ✅ VÉRIFIER les prérequis et dépendances
+4. ❌ JAMAIS partir sur des suppositions
+```
+
+### **❌ INTERDICTION #10 : JAMAIS IGNORER LES ERREURS OU WARNINGS**
+```bash
+# RÈGLE DE VIGILANCE TOTALE :
+1. ✅ ARRÊTER immédiatement si erreur détectée
+2. ✅ SIGNALER tous les warnings à l'utilisateur
+3. ✅ DEMANDER comment procéder en cas de doute
+4. ❌ JAMAIS continuer si quelque chose cloche
+```
+
+## 🔒 **PROCÉDURES DE SÉCURITÉ OBLIGATOIRES**
+
+### **🛡️ AVANT TOUTE MODIFICATION DE CODE :**
+```bash
+1. ✅ Lire le code existant COMPLÈTEMENT
+2. ✅ Comprendre pourquoi il a été écrit ainsi
+3. ✅ Identifier le problème EXACT à résoudre
+4. ✅ Proposer la modification MINIMALE
+5. ✅ Demander validation utilisateur EXPLICITE
+6. ✅ Tester la modification sur un petit exemple
+7. ✅ Garder l'ancienne version accessible (Git)
+```
+
+### **🛡️ PROTOCOLE D'URGENCE - SI QUELQUE CHOSE VA MAL :**
+```bash
+🚨 ARRÊT IMMÉDIAT ET PROCÉDURE DE RÉCUPÉRATION :
+1. ✅ STOP - Ne pas continuer
+2. ✅ SIGNALER le problème à l'utilisateur
+3. ✅ PROPOSER un rollback Git si nécessaire
+4. ✅ ATTENDRE les instructions de l'utilisateur
+5. ❌ JAMAIS essayer de "réparer" sans accord
+```
+
+### **🛡️ VALIDATION TRIPLE OBLIGATOIRE :**
+```bash
+AVANT CHAQUE ACTION - VÉRIFIER 3 FOIS :
+1. ✅ "Est-ce que j'ai l'autorisation explicite ?"
+2. ✅ "Ai-je expliqué exactement ce que je vais faire ?"
+3. ✅ "L'utilisateur a-t-il dit OUI clairement ?"
+SI UNE SEULE RÉPONSE = NON → ARRÊT IMMÉDIAT
+```
+
+### **🛡️ EN CAS DE DOUTE :**
+```bash
+🚨 RÈGLE ABSOLUE : DEMANDER À L'UTILISATEUR !
+- "Voulez-vous que je modifie X qui fonctionne actuellement ?"
+- "Dois-je sauvegarder cette version avant modification ?"
+- "Confirmez-vous que je peux remplacer l'approche Y par Z ?"
+- "Voulez-vous que je crée le fichier Z ? Voici pourquoi il est nécessaire : [RAISON]"
+- "Dois-je modifier ce code ? Voici exactement ce que je vais changer : [DÉTAILS]"
+```
+
+### **🛡️ AVANT TOUTE CRÉATION DE FICHIER :**
+```bash
+🚨 QUESTIONS OBLIGATOIRES :
+1. ✅ "Puis-je créer le fichier [NOM] ?"
+2. ✅ "Voici pourquoi il est nécessaire : [RAISON DÉTAILLÉE]"
+3. ✅ "Il contiendra : [DESCRIPTION DU CONTENU]"
+4. ✅ "Confirmez-vous la création ?"
+5. ✅ Attendre la réponse explicite avant de créer
+```
+
+### **🛡️ AVANT TOUTE MODIFICATION DE FICHIER :**
+```bash
+🚨 QUESTIONS OBLIGATOIRES :
+1. ✅ "Puis-je modifier le fichier [NOM] ?"
+2. ✅ "Voici exactement ce que je vais changer : [DÉTAILS PRÉCIS]"
+3. ✅ "Raison de la modification : [JUSTIFICATION]"
+4. ✅ "Confirmez-vous cette modification ?"
+5. ✅ Attendre la réponse explicite avant de modifier
+```
+
+### **🛡️ MODE LECTURE SEULE PAR DÉFAUT :**
+```bash
+🔒 PRINCIPE DE SÉCURITÉ MAXIMALE :
+- PAR DÉFAUT : Je ne peux QUE lire et analyser
+- MODIFICATION : Uniquement avec autorisation explicite
+- CRÉATION : Uniquement avec justification acceptée
+- TEST : Uniquement avec accord préalable
+```
+
+## 📋 **CHECKLIST DE SÉCURITÉ - À VALIDER AVANT CHAQUE ACTION**
+
+### **✅ Questions de Validation :**
+- [ ] Est-ce que le code actuel fonctionne ?
+- [ ] Ai-je l'accord explicite pour le modifier ?
+- [ ] Ma modification résout-elle LE problème précis ?
+- [ ] Ma solution est-elle plus simple que l'existante ?
+- [ ] Ai-je testé que ma modification fonctionne ?
+- [ ] Puis-je revenir en arrière facilement ?
+- [ ] **AI-JE DEMANDÉ LA PERMISSION EXPLICITE ?**
+- [ ] **AI-JE EXPLIQUÉ POURQUOI JE VEUX CRÉER/MODIFIER ?**
+- [ ] **L'UTILISATEUR A-T-IL DIT "OUI" CLAIREMENT ?**
+
+### **🚨 CHECKLIST DE SÉCURITÉ MAXIMALE :**
+- [ ] **AUTORISATION :** Permission explicite obtenue ?
+- [ ] **JUSTIFICATION :** Raison claire et validée ?
+- [ ] **IMPACT :** Conséquences comprises et acceptées ?
+- [ ] **REVERSIBILITÉ :** Possibilité de rollback ?
+- [ ] **SIMPLICITÉ :** Solution minimale privilégiée ?
+- [ ] **TEST :** Validation sur petit périmètre d'abord ?
+- [ ] **SAUVEGARDE :** Version de travail commitée ?
+- [ ] **MONITORING :** Surveillance pendant l'action ?
+
+### **🔒 PROTOCOLE DE VERROUILLAGE ABSOLU :**
+```bash
+SI UNE SEULE CASE N'EST PAS COCHÉE → ARRÊT IMMÉDIAT
+SI LE MOINDRE DOUTE → DEMANDER À L'UTILISATEUR
+SI ERREUR DÉTECTÉE → ARRÊT ET SIGNALEMENT
+SI CODE FONCTIONNE DÉJÀ → NE PAS TOUCHER
+```
+
+### **⚠️ SIGNAUX D'ALERTE - ARRÊT OBLIGATOIRE :**
+- 🚨 L'utilisateur dit "il y a un problème"
+- 🚨 Une modification casse quelque chose qui marchait
+- 🚨 Une approche différente est tentée sans validation
+- 🚨 Des erreurs d'encodage apparaissent
+- 🚨 Le code devient plus complexe qu'avant
+- 🚨 Des fichiers sont créés/modifiés sans accord
+
+---
+
 # 🎯 RÉFÉRENCE CLAUDE - ETL DEVOPS OPTIMISÉ
 
-**Version :** 4.0 - SONARCLOUD MASTER CLASS ✨  
-**Date :** 15/08/2025  
-**Objectif :** ETL personnel GitLab → Excel → Power BI + Qualité Code SonarCloud A+
+**Version :** 5.0 - SÉCURITÉ RENFORCÉE ⚡  
+**Date :** 29/08/2025  
+**Objectif :** ETL personnel GitLab → Excel → Power BI + Sécurité Anti-Casse
 
 ## 🏆 RÉSULTATS EXCEPTIONNELS OBTENUS
 **PERFORMANCE RECORD :** -62% de Complexité Cyclomatique !
@@ -289,6 +494,34 @@ def extract_users(gl):
 ```
 
 ```python
+# ❌ ANTI-PATTERN MAJEUR: Écraser du code fonctionnel
+# JAMAIS remplacer une approche qui marche sans demander !
+# Exemple : SonarClient → python-sonarqube-api (SANS TESTER)
+
+# ✅ RÈGLE DE SÉCURITÉ: Toujours demander confirmation
+"Voulez-vous que je remplace SonarClient (qui fonctionne) par python-sonarqube-api ?"
+```
+
+```python
+# ❌ Garder des fichiers doublons
+# - *_simple.py, *_backup.py
+# - analyzers/, filters/
+# - Fonctions get_*_statistics()
+
+# ✅ Architecture unique et propre
+# Une seule version de chaque module
+```
+
+```python
+# ❌ ENCODAGE TOXIQUE: Emojis dans le code Python
+# Cause UnicodeDecodeError et empêche l'exécution !
+
+# ✅ Code ASCII pur
+def extract_projects():  # Pas d'emoji ici !
+    return projects
+```
+
+```python
 # ❌ Garder des fichiers doublons
 # - *_simple.py, *_backup.py
 # - analyzers/, filters/
@@ -460,6 +693,13 @@ def log_dataframe(df, name):
 
 ### **💡 Principe Fondamental:**
 > "La complexité vient des statistiques et doublons, pas de la logique métier"
+
+### **🚨 ERREURS CATASTROPHIQUES À NE JAMAIS RÉPÉTER:**
+1. **Écraser du code fonctionnel** - SonarClient → python-sonarqube-api
+2. **Changer d'approche sans tester** - API REST → Bibliothèque tierce
+3. **Ignorer les problèmes d'encodage** - Emojis → UnicodeDecodeError
+4. **Modifier sans comprendre** - Refactoriser du code qui marche
+5. **Oublier les permissions** - Token Analysis ≠ Token Browse
 
 ---
 
