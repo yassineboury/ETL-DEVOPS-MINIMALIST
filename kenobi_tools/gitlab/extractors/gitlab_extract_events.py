@@ -403,13 +403,13 @@ if __name__ == "__main__":
         df_events = extract_gitlab_events(gl, limit=10)
         
         if not df_events.empty:
-            print(f"\n📊 Aperçu des données extraites:")
+            print("\n📊 Aperçu des données extraites:")
             print(f"   Colonnes: {list(df_events.columns)}")
             print(f"   Types d'actions: {df_events['type_action'].unique()}")
             print(f"   Nombre d'événements: {len(df_events)}")
             
             # Afficher les premières lignes
-            print(f"\n📋 Premiers événements:")
+            print("\n📋 Premiers événements:")
             for idx, row in df_events.head(3).iterrows():
                 print(f"   {row['utilisateur']} - {row['type_action']} - {row['nom_projet']}")
         else:

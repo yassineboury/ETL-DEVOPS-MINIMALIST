@@ -9,6 +9,9 @@ from datetime import datetime
 from typing import List, Dict, Any, Union, Optional
 from sonarqube import SonarQubeClient
 
+# Constantes
+NON_DEFINI = 'Non défini'
+
 
 def extract_sonar_metrics(sonar_client: SonarQubeClient) -> pd.DataFrame:
     """
@@ -117,7 +120,7 @@ def _get_last_analysis_date(sonar_client: SonarQubeClient, project_key: str) -> 
                     from datetime import datetime
                     dt = datetime.fromisoformat(analysis_date.replace('Z', '+00:00'))
                     return dt.strftime('%d/%m/%Y %H:%M:%S')
-                except:
+                except (ValueError, TypeError):
                     return analysis_date
         
         return ''
@@ -147,15 +150,15 @@ def _get_quality_gate_status(sonar_client: SonarQubeClient, project_key: str) ->
                             'OK': 'Réussi',
                             'ERROR': 'Échec', 
                             'WARN': 'Avertissement',
-                            'NONE': 'Non défini'
+                            'NONE': NON_DEFINI
                         }
-                        return status_mapping.get(status, 'Non défini')
+                        return status_mapping.get(status, NON_DEFINI)
         
-        return 'Non défini'
+        return NON_DEFINI
         
     except Exception as e:
         print(f"⚠️ Erreur Quality Gate {project_key}: {e}")
-        return 'Non défini'
+        return NON_DEFINI
 
 
 def _format_date_columns(df: pd.DataFrame) -> pd.DataFrame:
@@ -224,54 +227,63 @@ def _extract_security_metrics(sonar_client: SonarQubeClient, project_key: str) -
     security_data = {
         'vulnerabilities_totales': 0,
         'vulnerabilities_nouvelles': 0,
-        'note_securite': 'Non défini',
-        'note_securite_nouveau': 'Non défini',
+        'note_securite': NON_DEFINI,
+        'note_securite_nouveau': NON_DEFINI,
         'hotspots_securite': 0,
         'hotspots_revises_pct': 0
     }
     
     try:
         # Récupérer toutes les métriques de sécurité en une fois
-        security_metrics: Optional[Dict[str, Any]] = sonar_client.measures.get_component_with_specified_measures(
+        security_metrics = sonar_client.measures.get_component_with_specified_measures(
             component=project_key,
             metricKeys="vulnerabilities,new_vulnerabilities,security_rating,new_security_rating,security_hotspots,security_hotspots_reviewed"
         )
         
-        if security_metrics and security_metrics.get('component', {}).get('measures'):
-            measures: List[Dict[str, Any]] = security_metrics['component']['measures']
+        if not security_metrics or not security_metrics.get('component', {}).get('measures'):
+            return security_data
             
-            if isinstance(measures, list):
-                for measure in measures:
-                    if not isinstance(measure, dict):
-                        continue
-                        
-                    metric_key = measure.get('metric', '')
-                    value = measure.get('value', '0')
-                    
-                    # Mapper chaque métrique
-                    if metric_key == 'vulnerabilities':
-                        security_data['vulnerabilities_totales'] = int(value) if value.isdigit() else 0
-                        
-                    elif metric_key == 'new_vulnerabilities':
-                        security_data['vulnerabilities_nouvelles'] = int(value) if value.isdigit() else 0
-                        
-                    elif metric_key == 'security_rating':
-                        security_data['note_securite'] = _convert_rating_to_letter(value)
-                        
-                    elif metric_key == 'new_security_rating':
-                        security_data['note_securite_nouveau'] = _convert_rating_to_letter(value)
-                        
-                    elif metric_key == 'security_hotspots':
-                        security_data['hotspots_securite'] = int(value) if value.isdigit() else 0
-                        
-                    elif metric_key == 'security_hotspots_reviewed':
-                        security_data['hotspots_revises_pct'] = float(value) if value.replace('.', '').isdigit() else 0.0
+        measures: List[Dict[str, Any]] = security_metrics['component']['measures']
+        if not isinstance(measures, list):
+            return security_data
+            
+        # Traiter chaque métrique
+        for measure in measures:
+            if not isinstance(measure, dict):
+                continue
+                
+            metric_key = measure.get('metric', '')
+            value = measure.get('value', '0')
+            
+            # Déléguer le traitement à des fonctions spécialisées
+            _process_single_security_metric(security_data, metric_key, value)
         
         return security_data
         
     except Exception as e:
         print(f"⚠️ Erreur sécurité {project_key}: {e}")
         return security_data
+
+
+def _process_single_security_metric(security_data: Dict[str, Any], metric_key: str, value: str) -> None:
+    """Traite une métrique de sécurité individuelle"""
+    if metric_key == 'vulnerabilities':
+        security_data['vulnerabilities_totales'] = int(value) if value.isdigit() else 0
+        
+    elif metric_key == 'new_vulnerabilities':
+        security_data['vulnerabilities_nouvelles'] = int(value) if value.isdigit() else 0
+        
+    elif metric_key == 'security_rating':
+        security_data['note_securite'] = _convert_rating_to_letter(value)
+        
+    elif metric_key == 'new_security_rating':
+        security_data['note_securite_nouveau'] = _convert_rating_to_letter(value)
+        
+    elif metric_key == 'security_hotspots':
+        security_data['hotspots_securite'] = int(value) if value.isdigit() else 0
+        
+    elif metric_key == 'security_hotspots_reviewed':
+        security_data['hotspots_revises_pct'] = float(value) if value.replace('.', '').isdigit() else 0.0
 
 
 def _convert_rating_to_letter(rating_value: str) -> str:
@@ -284,33 +296,37 @@ def _convert_rating_to_letter(rating_value: str) -> str:
             '4': 'D',
             '5': 'E'
         }
-        return rating_map.get(str(rating_value), 'Non défini')
-    except:
-        return 'Non défini'
+        return rating_map.get(str(rating_value), NON_DEFINI)
+    except (ValueError, TypeError):
+        return NON_DEFINI
 
 
-def _extract_maintainability_metrics(sonar_client: SonarQubeClient, project_key: str) -> Dict[str, Any]:
+# ═══════════════════════════════════════════════════════════
+# 🚀 SECTIONS FUTURES (À IMPLÉMENTER)  
+# ═══════════════════════════════════════════════════════════
+
+# TODO: Implémenter extraction métriques maintenabilité
+def _extract_maintainability_metrics() -> Dict[str, Any]:
     """
     SECTION MAINTENABILITÉ : Code Smells, Tech Debt, Maintainability Rating
     À implémenter dans la prochaine itération  
     """
-    # TODO: Implémenter extraction métriques maintenabilité
     return {}
 
 
-def _extract_reliability_metrics(sonar_client: SonarQubeClient, project_key: str) -> Dict[str, Any]:
+# TODO: Implémenter extraction métriques fiabilité
+def _extract_reliability_metrics() -> Dict[str, Any]:
     """
     SECTION FIABILITÉ : Bugs, Reliability Rating
     À implémenter dans la prochaine itération
     """
-    # TODO: Implémenter extraction métriques fiabilité
     return {}
 
 
-def _extract_coverage_metrics(sonar_client: SonarQubeClient, project_key: str) -> Dict[str, Any]:
+# TODO: Implémenter extraction métriques couverture
+def _extract_coverage_metrics() -> Dict[str, Any]:
     """
     SECTION COUVERTURE : Coverage, Line Coverage, Branch Coverage
     À implémenter dans la prochaine itération
     """
-    # TODO: Implémenter extraction métriques couverture
     return {}

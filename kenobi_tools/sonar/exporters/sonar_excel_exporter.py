@@ -14,6 +14,9 @@ from kenobi_tools.sonar.extractors.sonar_extract_metrics import (
     SONAR_METRICS_COLUMN_ORDER
 )
 
+# Constantes
+SONAR_SHEET_NAME = "Sonar Metrics"
+
 
 class SonarExcelExporter:
     """Exporteur Excel minimaliste pour SonarQube - Power BI ready"""
@@ -50,7 +53,7 @@ class SonarExcelExporter:
         if df_metrics.empty:
             # Créer un fichier vide avec en-têtes pour Power BI
             empty_df = pd.DataFrame(columns=SONAR_METRICS_COLUMN_ORDER)
-            empty_df.to_excel(filename, sheet_name="Sonar Metrics", index=False)
+            empty_df.to_excel(filename, sheet_name=SONAR_SHEET_NAME, index=False)
             print(f"⚠️ Aucune métrique trouvée - fichier vide créé → {filename}")
             return str(filename)
         
@@ -61,7 +64,7 @@ class SonarExcelExporter:
         df_export = df_export[SONAR_METRICS_COLUMN_ORDER]
         
         # Export basique - Power BI fait le reste
-        df_export.to_excel(filename, sheet_name="Sonar Metrics", index=False)
+        df_export.to_excel(filename, sheet_name=SONAR_SHEET_NAME, index=False)
         
         print(f"✅ {len(df_metrics)} métriques SonarQube → {filename}")
         return str(filename)
@@ -82,7 +85,7 @@ def export_sonar_metrics_to_excel(df_metrics: pd.DataFrame, filename: Optional[s
         df_export = df_metrics.rename(columns=SONAR_METRICS_COLUMN_MAPPING)
         df_export = df_export[SONAR_METRICS_COLUMN_ORDER]
         
-        df_export.to_excel(custom_path, sheet_name="Sonar Metrics", index=False)
+        df_export.to_excel(custom_path, sheet_name=SONAR_SHEET_NAME, index=False)
         print(f"✅ Export SonarQube test: {custom_path}")
         return str(custom_path)
     else:
