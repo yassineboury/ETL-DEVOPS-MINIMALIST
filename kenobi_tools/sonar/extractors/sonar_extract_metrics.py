@@ -301,32 +301,188 @@ def _convert_rating_to_letter(rating_value: str) -> str:
         return NON_DEFINI
 
 
+def _format_technical_debt(debt_minutes: str) -> str:
+    """Convertit la dette technique de minutes en format lisible (heures/jours)"""
+    try:
+        minutes = int(debt_minutes) if debt_minutes.isdigit() else 0
+        if minutes == 0:
+            return NON_DEFINI
+        
+        if minutes < 60:
+            return f"{minutes}min"
+        elif minutes < 1440:  # moins d'un jour
+            hours = round(minutes / 60, 1)
+            return f"{hours}h"
+        else:  # plus d'un jour
+            days = round(minutes / 1440, 1)
+            return f"{days}j"
+            
+    except (ValueError, TypeError):
+        return NON_DEFINI
+
+
 # ═══════════════════════════════════════════════════════════
 # 🚀 SECTIONS FUTURES (À IMPLÉMENTER)  
 # ═══════════════════════════════════════════════════════════
 
-# TODO: Implémenter extraction métriques maintenabilité
-def _extract_maintainability_metrics() -> Dict[str, Any]:
+def _extract_maintainability_metrics(sonar_client: SonarQubeClient, project_key: str) -> Dict[str, Any]:
     """
     SECTION MAINTENABILITÉ : Code Smells, Tech Debt, Maintainability Rating
-    À implémenter dans la prochaine itération  
+    
+    Métriques extraites:
+    - Code Smells (Total/Nouveaux)
+    - Dette technique (Total/Nouveau)
+    - Note de maintenabilité (Global/Nouveau)
     """
-    return {}
+    maintainability_data = {
+        'code_smells_totaux': 0,
+        'code_smells_nouveaux': 0,
+        'dette_technique': NON_DEFINI,
+        'dette_technique_nouvelle': NON_DEFINI,
+        'note_maintenabilite': NON_DEFINI,
+        'note_maintenabilite_nouvelle': NON_DEFINI
+    }
+    
+    try:
+        maintainability_metrics = sonar_client.measures.get_component_with_specified_measures(
+            component=project_key,
+            metricKeys="code_smells,new_code_smells,sqale_index,new_technical_debt,sqale_rating,new_maintainability_rating"
+        )
+        
+        if maintainability_metrics and maintainability_metrics.get('component', {}).get('measures'):
+            measures = maintainability_metrics['component']['measures']
+            if not isinstance(measures, list):
+                return maintainability_data
+            
+            for measure in measures:
+                if not isinstance(measure, dict):
+                    continue
+                    
+                metric_key = measure.get('metric', '')
+                value = measure.get('value', '0')
+                
+                if metric_key == 'code_smells':
+                    maintainability_data['code_smells_totaux'] = int(value) if value.isdigit() else 0
+                elif metric_key == 'new_code_smells':
+                    maintainability_data['code_smells_nouveaux'] = int(value) if value.isdigit() else 0
+                elif metric_key == 'sqale_index':
+                    maintainability_data['dette_technique'] = _format_technical_debt(value)
+                elif metric_key == 'new_technical_debt':
+                    maintainability_data['dette_technique_nouvelle'] = _format_technical_debt(value)
+                elif metric_key == 'sqale_rating':
+                    maintainability_data['note_maintenabilite'] = _convert_rating_to_letter(value)
+                elif metric_key == 'new_maintainability_rating':
+                    maintainability_data['note_maintenabilite_nouvelle'] = _convert_rating_to_letter(value)
+        
+        return maintainability_data
+        
+    except Exception as e:
+        print(f"⚠️ Erreur maintenabilité {project_key}: {e}")
+        return maintainability_data
 
 
-# TODO: Implémenter extraction métriques fiabilité
-def _extract_reliability_metrics() -> Dict[str, Any]:
+def _extract_reliability_metrics(sonar_client: SonarQubeClient, project_key: str) -> Dict[str, Any]:
     """
     SECTION FIABILITÉ : Bugs, Reliability Rating
-    À implémenter dans la prochaine itération
+    
+    Métriques extraites:
+    - Bugs (Total/Nouveaux)
+    - Note de fiabilité (Global/Nouveau)
     """
-    return {}
+    reliability_data = {
+        'bugs_totaux': 0,
+        'bugs_nouveaux': 0,
+        'note_fiabilite': NON_DEFINI,
+        'note_fiabilite_nouvelle': NON_DEFINI
+    }
+    
+    try:
+        reliability_metrics = sonar_client.measures.get_component_with_specified_measures(
+            component=project_key,
+            metricKeys="bugs,new_bugs,reliability_rating,new_reliability_rating"
+        )
+        
+        if reliability_metrics and reliability_metrics.get('component', {}).get('measures'):
+            measures = reliability_metrics['component']['measures']
+            if not isinstance(measures, list):
+                return reliability_data
+            
+            for measure in measures:
+                if not isinstance(measure, dict):
+                    continue
+                    
+                metric_key = measure.get('metric', '')
+                value = measure.get('value', '0')
+                
+                if metric_key == 'bugs':
+                    reliability_data['bugs_totaux'] = int(value) if value.isdigit() else 0
+                elif metric_key == 'new_bugs':
+                    reliability_data['bugs_nouveaux'] = int(value) if value.isdigit() else 0
+                elif metric_key == 'reliability_rating':
+                    reliability_data['note_fiabilite'] = _convert_rating_to_letter(value)
+                elif metric_key == 'new_reliability_rating':
+                    reliability_data['note_fiabilite_nouvelle'] = _convert_rating_to_letter(value)
+        
+        return reliability_data
+        
+    except Exception as e:
+        print(f"⚠️ Erreur fiabilité {project_key}: {e}")
+        return reliability_data
 
 
-# TODO: Implémenter extraction métriques couverture
-def _extract_coverage_metrics() -> Dict[str, Any]:
+def _extract_coverage_metrics(sonar_client: SonarQubeClient, project_key: str) -> Dict[str, Any]:
     """
     SECTION COUVERTURE : Coverage, Line Coverage, Branch Coverage
-    À implémenter dans la prochaine itération
+    
+    Métriques extraites:
+    - Couverture générale (Total/Nouveau)
+    - Couverture de ligne (Total/Nouveau) 
+    - Couverture de branche (Total/Nouveau)
     """
-    return {}
+    coverage_data = {
+        'couverture_generale': 0.0,
+        'couverture_generale_nouvelle': 0.0,
+        'couverture_ligne': 0.0,
+        'couverture_ligne_nouvelle': 0.0,
+        'couverture_branche': 0.0,
+        'couverture_branche_nouvelle': 0.0
+    }
+    
+    try:
+        coverage_metrics = sonar_client.measures.get_component_with_specified_measures(
+            component=project_key,
+            metricKeys="coverage,new_coverage,line_coverage,new_line_coverage,branch_coverage,new_branch_coverage"
+        )
+        
+        if coverage_metrics and coverage_metrics.get('component', {}).get('measures'):
+            measures = coverage_metrics['component']['measures']
+            if not isinstance(measures, list):
+                return coverage_data
+            
+            for measure in measures:
+                if not isinstance(measure, dict):
+                    continue
+                    
+                metric_key = measure.get('metric', '')
+                value = measure.get('value', '0.0')
+                
+                percentage_value = float(value) if value.replace('.', '').isdigit() else 0.0
+                
+                if metric_key == 'coverage':
+                    coverage_data['couverture_generale'] = percentage_value
+                elif metric_key == 'new_coverage':
+                    coverage_data['couverture_generale_nouvelle'] = percentage_value
+                elif metric_key == 'line_coverage':
+                    coverage_data['couverture_ligne'] = percentage_value
+                elif metric_key == 'new_line_coverage':
+                    coverage_data['couverture_ligne_nouvelle'] = percentage_value
+                elif metric_key == 'branch_coverage':
+                    coverage_data['couverture_branche'] = percentage_value
+                elif metric_key == 'new_branch_coverage':
+                    coverage_data['couverture_branche_nouvelle'] = percentage_value
+        
+        return coverage_data
+        
+    except Exception as e:
+        print(f"⚠️ Erreur couverture {project_key}: {e}")
+        return coverage_data
