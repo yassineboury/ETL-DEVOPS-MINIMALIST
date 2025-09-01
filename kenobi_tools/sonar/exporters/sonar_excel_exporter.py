@@ -16,6 +16,7 @@ from kenobi_tools.sonar.extractors.sonar_extract_metrics import (
 
 # Constantes
 SONAR_SHEET_NAME = "Sonar Metrics"
+DATE_DERNIERE_ANALYSE_COLUMN = "Date Dernière Analyse"
 
 
 class SonarExcelExporter:
@@ -63,6 +64,16 @@ class SonarExcelExporter:
         # Réordonner les colonnes selon la spécification
         df_export = df_export[SONAR_METRICS_COLUMN_ORDER]
         
+        # TRI PAR DATE : Plus récente → Plus ancienne
+        if DATE_DERNIERE_ANALYSE_COLUMN in df_export.columns:
+            # Convertir les dates pour le tri (gérer les valeurs vides)
+            df_export['_date_sort'] = pd.to_datetime(df_export[DATE_DERNIERE_ANALYSE_COLUMN], 
+                                                    format='%d/%m/%Y %H:%M:%S', errors='coerce')
+            # Trier par date décroissante (NaT en fin)
+            df_export = df_export.sort_values('_date_sort', ascending=False, na_position='last')
+            # Supprimer la colonne temporaire
+            df_export = df_export.drop('_date_sort', axis=1)
+        
         # Export basique - Power BI fait le reste
         df_export.to_excel(filename, sheet_name=SONAR_SHEET_NAME, index=False)
         
@@ -84,6 +95,16 @@ def export_sonar_metrics_to_excel(df_metrics: pd.DataFrame, filename: Optional[s
         # Mapping Power BI
         df_export = df_metrics.rename(columns=SONAR_METRICS_COLUMN_MAPPING)
         df_export = df_export[SONAR_METRICS_COLUMN_ORDER]
+        
+        # TRI PAR DATE : Plus récente → Plus ancienne (même logique que export_projects)
+        if DATE_DERNIERE_ANALYSE_COLUMN in df_export.columns:
+            # Convertir les dates pour le tri (gérer les valeurs vides)
+            df_export['_date_sort'] = pd.to_datetime(df_export[DATE_DERNIERE_ANALYSE_COLUMN], 
+                                                    format='%d/%m/%Y %H:%M:%S', errors='coerce')
+            # Trier par date décroissante (NaT en fin)
+            df_export = df_export.sort_values('_date_sort', ascending=False, na_position='last')
+            # Supprimer la colonne temporaire
+            df_export = df_export.drop('_date_sort', axis=1)
         
         df_export.to_excel(custom_path, sheet_name=SONAR_SHEET_NAME, index=False)
         print(f"✅ Export SonarQube test: {custom_path}")

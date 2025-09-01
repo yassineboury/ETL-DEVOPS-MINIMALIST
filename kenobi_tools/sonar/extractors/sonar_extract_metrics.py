@@ -89,10 +89,16 @@ def _extract_complete_metrics_data(sonar_client: SonarQubeClient) -> List[Dict[s
             }
             
             # ═══════════════════════════════════════════════════════════
-            # 🔒 SECTION : MÉTRIQUES SÉCURITÉ (nouvelles)
+            # 🔒 SECTION : MÉTRIQUES SÉCURITÉ (existantes)
             # ═══════════════════════════════════════════════════════════
             security_metrics = _extract_security_metrics(sonar_client, project_key)
             project_metrics.update(security_metrics)
+            
+            # ═══════════════════════════════════════════════════════════
+            # 🔧 SECTION : MÉTRIQUES MAINTENABILITÉ (nouvelles)
+            # ═══════════════════════════════════════════════════════════
+            maintainability_metrics = _extract_maintainability_metrics(sonar_client, project_key)
+            project_metrics.update(maintainability_metrics)
             
             metrics_data.append(project_metrics)
             
@@ -197,17 +203,29 @@ SONAR_METRICS_COLUMN_MAPPING = {
     'note_securite': 'Note Sécurité',
     'note_securite_nouveau': 'Nouvelle Note Sécurité',
     'hotspots_securite': 'Hotspots Sécurité',
-    'hotspots_revises_pct': 'Hotspots Révisés (%)'
+    'hotspots_revises_pct': 'Hotspots Révisés (%)',
+    
+    # MÉTRIQUES MAINTENABILITÉ (6 colonnes)
+    'code_smells_totaux': 'Code Smells Totaux',
+    'code_smells_nouveaux': 'Nouveaux Code Smells',
+    'dette_technique': 'Dette Technique',
+    'dette_technique_nouvelle': 'Nouvelle Dette Technique',
+    'note_maintenabilite': 'Note Maintenabilité',
+    'note_maintenabilite_nouvelle': 'Nouvelle Note Maintenabilité'
 }
 
-# Ordre des colonnes dans Excel (10 colonnes total)
+# Ordre des colonnes dans Excel (16 colonnes total)
 SONAR_METRICS_COLUMN_ORDER = [
-    # Projet
+    # Projet (4)
     'Clé Projet', 'Nom Projet', 'Date Dernière Analyse', 'Qualité Gate',
-    # Sécurité  
+    # Sécurité (6)
     'Vulnérabilités Totales', 'Nouvelles Vulnérabilités',
     'Note Sécurité', 'Nouvelle Note Sécurité', 
-    'Hotspots Sécurité', 'Hotspots Révisés (%)'
+    'Hotspots Sécurité', 'Hotspots Révisés (%)',
+    # Maintenabilité (6)
+    'Code Smells Totaux', 'Nouveaux Code Smells',
+    'Dette Technique', 'Nouvelle Dette Technique',
+    'Note Maintenabilité', 'Nouvelle Note Maintenabilité'
 ]
 
 
