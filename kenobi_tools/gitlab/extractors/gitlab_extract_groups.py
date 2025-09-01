@@ -41,7 +41,7 @@ def extract_groups(gl_client: python_gitlab.Gitlab) -> pd.DataFrame:
                 if hasattr(group, 'parent_id') and group.parent_id:
                     parent_group = gl_client.groups.get(group.parent_id)
                     parent_name = parent_group.name
-            except:
+            except python_gitlab.GitlabError:
                 pass
                 
             data.append({

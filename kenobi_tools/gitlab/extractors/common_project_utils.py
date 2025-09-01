@@ -32,45 +32,8 @@ def extract_all_projects(gl_client: python_gitlab.Gitlab, include_archived: bool
         # Construction des données brutes pour Power BI
         data = []
         for project in projects:
-            # Extraction des métriques avancées
-            try:
-                # Compter les branches via l'API (avec pagination)
-                branches_count = len(project.branches.list(get_all=False))  # Limite à 20 pour performance
-            except:
-                branches_count = 0
-            
-            # Type de namespace - CORRECTION: vérifier namespace.kind correctement
-            namespace_type = 'Utilisateur'
-            try:
-                if hasattr(project, 'namespace') and project.namespace:
-                    # Le namespace est un dictionnaire, pas un objet
-                    kind = project.namespace.get('kind', 'user')
-                    namespace_type = 'Groupe' if kind == 'group' else 'Utilisateur'
-            except:
-                pass
-            
-            # Taille du repository - CORRECTION: récupérer via statistics dict
-            repo_size = 0
-            try:
-                if hasattr(project, 'statistics') and project.statistics:
-                    stats = project.statistics
-                    if isinstance(stats, dict) and 'repository_size' in stats:
-                        repo_size = stats['repository_size']
-            except:
-                pass
-            
-            data.append({
-                'id_projet': project.id,
-                'nom': project.name,
-                'nom_complet': project.path_with_namespace,
-                'archive': 'Oui' if getattr(project, 'archived', False) else 'Non',
-                'date_creation': project.created_at,
-                'date_derniere_activite': project.last_activity_at,
-                'langage_principal': getattr(project, 'default_branch', 'main'),  # Branche par défaut
-                'total_branches': branches_count,
-                'type_namespace': namespace_type,
-                'taille_repo': repo_size
-            })
+            project_data = _extract_single_project_data(project)
+            data.append(project_data)
         
         df = pd.DataFrame(data)
         
@@ -81,6 +44,62 @@ def extract_all_projects(gl_client: python_gitlab.Gitlab, include_archived: bool
         
         return df
         
+    except python_gitlab.GitlabError as e:
+        print(f"❌ Erreur GitLab: {e}")
+        return pd.DataFrame()
     except Exception as e:
         print(f"❌ Erreur extraction projets: {e}")
         return pd.DataFrame()
+
+
+def _extract_single_project_data(project) -> dict:
+    """Extrait les données d'un projet unique"""
+    # Extraction des métriques avancées
+    branches_count = _get_branches_count(project)
+    namespace_type = _get_namespace_type(project)
+    repo_size = _get_repository_size(project)
+    
+    return {
+        'id_projet': project.id,
+        'nom': project.name,
+        'nom_complet': project.path_with_namespace,
+        'archive': 'Oui' if getattr(project, 'archived', False) else 'Non',
+        'date_creation': project.created_at,
+        'date_derniere_activite': project.last_activity_at,
+        'langage_principal': getattr(project, 'default_branch', 'main'),  # Branche par défaut
+        'total_branches': branches_count,
+        'type_namespace': namespace_type,
+        'taille_repo': repo_size
+    }
+
+
+def _get_branches_count(project) -> int:
+    """Récupère le nombre de branches"""
+    try:
+        return len(project.branches.list(get_all=False))  # Limite à 20 pour performance
+    except python_gitlab.GitlabError:
+        return 0
+
+
+def _get_namespace_type(project) -> str:
+    """Récupère le type de namespace"""
+    try:
+        if hasattr(project, 'namespace') and project.namespace:
+            # Le namespace est un dictionnaire, pas un objet
+            kind = project.namespace.get('kind', 'user')
+            return 'Groupe' if kind == 'group' else 'Utilisateur'
+    except (AttributeError, TypeError):
+        pass
+    return 'Utilisateur'
+
+
+def _get_repository_size(project) -> int:
+    """Récupère la taille du repository"""
+    try:
+        if hasattr(project, 'statistics') and project.statistics:
+            stats = project.statistics
+            if isinstance(stats, dict) and 'repository_size' in stats:
+                return stats['repository_size']
+    except (AttributeError, TypeError, KeyError):
+        pass
+    return 0

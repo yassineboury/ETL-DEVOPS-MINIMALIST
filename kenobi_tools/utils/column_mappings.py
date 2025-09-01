@@ -9,12 +9,19 @@ NE JAMAIS modifier sans validation utilisateur explicite !
 Objectif: Éviter toute confusion entre noms techniques et noms Power BI
 """
 
+# 🏷️ CONSTANTES COMMUNES POWER BI
+ID_UTILISATEUR = 'id Utilisateur'
+NOM_COMPLET = 'Nom Complet'
+ARCHIVE = 'Archivé'
+DATE_CREATION = 'Date Création'
+ID_PROJET = 'id Projet'
+
 # 👥 UTILISATEURS - Mapping colonnes techniques → Power BI
 USERS_COLUMN_MAPPING = {
-    'id_utilisateur': 'id Utilisateur',
+    'id_utilisateur': ID_UTILISATEUR,
     'nom_utilisateur': 'Nom Utilisateur', 
     'email': 'Email',
-    'nom_complet': 'Nom Complet',
+    'nom_complet': NOM_COMPLET,
     'admin': 'Admin',
     'etat': 'Etat',
     'date_creation': 'Date Creation',
@@ -24,7 +31,7 @@ USERS_COLUMN_MAPPING = {
 
 # 📋 ORDRE COLONNES UTILISATEURS (OBLIGATOIRE POWER BI)
 USERS_COLUMN_ORDER = [
-    'id Utilisateur', 'Nom Utilisateur', 'Email', 'Nom Complet', 'Admin',
+    ID_UTILISATEUR, 'Nom Utilisateur', 'Email', NOM_COMPLET, 'Admin',
     'Etat', 'Date Creation', 'Date Derniere Activite', 'Date Derniere Connexion'
 ]
 
@@ -32,20 +39,20 @@ USERS_COLUMN_ORDER = [
 GROUPS_COLUMN_MAPPING = {
     'id_groupe': 'id Groupe',
     'nom': 'Nom',
-    'nom_complet': 'Nom Complet',
+    'nom_complet': NOM_COMPLET,
     'chemin_complet': 'Chemin Complet',
     'parent_name': 'Groupe Parent',
-    'archive': 'Archivé',
-    'date_creation': 'Date Création'
+    'archive': ARCHIVE,
+    'date_creation': DATE_CREATION
 }
 
 # 📁 PROJETS - Mapping colonnes techniques → Power BI
 PROJECTS_COLUMN_MAPPING = {
-    'id_projet': 'id Projet',
+    'id_projet': ID_PROJET,
     'nom': 'Nom',
-    'nom_complet': 'Nom Complet',
-    'archive': 'Archivé',
-    'date_creation': 'Date Création',
+    'nom_complet': NOM_COMPLET,
+    'archive': ARCHIVE,
+    'date_creation': DATE_CREATION,
     'date_derniere_activite': 'Date Dernière Activité',
     'total_branches': 'Total Branches',
     'type_namespace': 'Type Namespace'
@@ -53,13 +60,13 @@ PROJECTS_COLUMN_MAPPING = {
 
 # 📋 ORDRE COLONNES POWER BI (OBLIGATOIRE)
 GROUPS_COLUMN_ORDER = [
-    'id Groupe', 'Nom', 'Nom Complet', 'Chemin Complet', 'Groupe Parent', 
-    'Archivé', 'Date Création'
+    'id Groupe', 'Nom', NOM_COMPLET, 'Chemin Complet', 'Groupe Parent', 
+    ARCHIVE, DATE_CREATION
 ]
 
 PROJECTS_COLUMN_ORDER = [
-    'id Projet', 'Nom', 'Nom Complet',
-    'Archivé', 'Date Création', 'Date Dernière Activité',
+    ID_PROJET, 'Nom', NOM_COMPLET,
+    ARCHIVE, DATE_CREATION, 'Date Dernière Activité',
     'Total Branches', 'Type Namespace'
 ]
 
@@ -79,9 +86,9 @@ EVENTS_COLUMNS = [
 EVENTS_COLUMN_MAPPING = {
     'id_evenement': 'id Événement',
     'type_action': 'Type Action',
-    'id_projet': 'id Projet',
+    'id_projet': ID_PROJET,
     'nom_projet': 'Nom Projet',
-    'id_utilisateur': 'id Utilisateur',
+    'id_utilisateur': ID_UTILISATEUR,
     'utilisateur': 'Utilisateur',
     'date_evenement': 'Date Événement',
     'branche': 'Branche'

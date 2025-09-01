@@ -350,35 +350,43 @@ def _extract_maintainability_metrics(sonar_client: SonarQubeClient, project_key:
         )
         
         if maintainability_metrics and maintainability_metrics.get('component', {}).get('measures'):
-            measures = maintainability_metrics['component']['measures']
-            if not isinstance(measures, list):
+            measures_raw = maintainability_metrics['component']['measures']
+            if not isinstance(measures_raw, list):
                 return maintainability_data
             
-            for measure in measures:
+            # Annotation explicite pour éviter l'erreur Pylance
+            measures: List[Dict[str, Any]] = measures_raw
+            
+            for measure in measures:  # type: ignore
                 if not isinstance(measure, dict):
                     continue
                     
-                metric_key = measure.get('metric', '')
-                value = measure.get('value', '0')
-                
-                if metric_key == 'code_smells':
-                    maintainability_data['code_smells_totaux'] = int(value) if value.isdigit() else 0
-                elif metric_key == 'new_code_smells':
-                    maintainability_data['code_smells_nouveaux'] = int(value) if value.isdigit() else 0
-                elif metric_key == 'sqale_index':
-                    maintainability_data['dette_technique'] = _format_technical_debt(value)
-                elif metric_key == 'new_technical_debt':
-                    maintainability_data['dette_technique_nouvelle'] = _format_technical_debt(value)
-                elif metric_key == 'sqale_rating':
-                    maintainability_data['note_maintenabilite'] = _convert_rating_to_letter(value)
-                elif metric_key == 'new_maintainability_rating':
-                    maintainability_data['note_maintenabilite_nouvelle'] = _convert_rating_to_letter(value)
+                _process_maintainability_measure(maintainability_data, measure)
         
         return maintainability_data
         
     except Exception as e:
         print(f"⚠️ Erreur maintenabilité {project_key}: {e}")
         return maintainability_data
+
+
+def _process_maintainability_measure(maintainability_data: Dict[str, Any], measure: Dict[str, Any]) -> None:
+    """Traite une métrique de maintenabilité individuelle"""
+    metric_key = measure.get('metric', '')
+    value = measure.get('value', '0')
+    
+    if metric_key == 'code_smells':
+        maintainability_data['code_smells_totaux'] = int(value) if value.isdigit() else 0
+    elif metric_key == 'new_code_smells':
+        maintainability_data['code_smells_nouveaux'] = int(value) if value.isdigit() else 0
+    elif metric_key == 'sqale_index':
+        maintainability_data['dette_technique'] = _format_technical_debt(value)
+    elif metric_key == 'new_technical_debt':
+        maintainability_data['dette_technique_nouvelle'] = _format_technical_debt(value)
+    elif metric_key == 'sqale_rating':
+        maintainability_data['note_maintenabilite'] = _convert_rating_to_letter(value)
+    elif metric_key == 'new_maintainability_rating':
+        maintainability_data['note_maintenabilite_nouvelle'] = _convert_rating_to_letter(value)
 
 
 def _extract_reliability_metrics(sonar_client: SonarQubeClient, project_key: str) -> Dict[str, Any]:
@@ -403,31 +411,39 @@ def _extract_reliability_metrics(sonar_client: SonarQubeClient, project_key: str
         )
         
         if reliability_metrics and reliability_metrics.get('component', {}).get('measures'):
-            measures = reliability_metrics['component']['measures']
-            if not isinstance(measures, list):
+            measures_raw = reliability_metrics['component']['measures']
+            if not isinstance(measures_raw, list):
                 return reliability_data
             
-            for measure in measures:
+            # Annotation explicite pour éviter l'erreur Pylance
+            measures: List[Dict[str, Any]] = measures_raw
+            
+            for measure in measures:  # type: ignore
                 if not isinstance(measure, dict):
                     continue
                     
-                metric_key = measure.get('metric', '')
-                value = measure.get('value', '0')
-                
-                if metric_key == 'bugs':
-                    reliability_data['bugs_totaux'] = int(value) if value.isdigit() else 0
-                elif metric_key == 'new_bugs':
-                    reliability_data['bugs_nouveaux'] = int(value) if value.isdigit() else 0
-                elif metric_key == 'reliability_rating':
-                    reliability_data['note_fiabilite'] = _convert_rating_to_letter(value)
-                elif metric_key == 'new_reliability_rating':
-                    reliability_data['note_fiabilite_nouvelle'] = _convert_rating_to_letter(value)
+                _process_reliability_measure(reliability_data, measure)
         
         return reliability_data
         
     except Exception as e:
         print(f"⚠️ Erreur fiabilité {project_key}: {e}")
         return reliability_data
+
+
+def _process_reliability_measure(reliability_data: Dict[str, Any], measure: Dict[str, Any]) -> None:
+    """Traite une métrique de fiabilité individuelle"""
+    metric_key = measure.get('metric', '')
+    value = measure.get('value', '0')
+    
+    if metric_key == 'bugs':
+        reliability_data['bugs_totaux'] = int(value) if value.isdigit() else 0
+    elif metric_key == 'new_bugs':
+        reliability_data['bugs_nouveaux'] = int(value) if value.isdigit() else 0
+    elif metric_key == 'reliability_rating':
+        reliability_data['note_fiabilite'] = _convert_rating_to_letter(value)
+    elif metric_key == 'new_reliability_rating':
+        reliability_data['note_fiabilite_nouvelle'] = _convert_rating_to_letter(value)
 
 
 def _extract_coverage_metrics(sonar_client: SonarQubeClient, project_key: str) -> Dict[str, Any]:
@@ -455,34 +471,42 @@ def _extract_coverage_metrics(sonar_client: SonarQubeClient, project_key: str) -
         )
         
         if coverage_metrics and coverage_metrics.get('component', {}).get('measures'):
-            measures = coverage_metrics['component']['measures']
-            if not isinstance(measures, list):
+            measures_raw = coverage_metrics['component']['measures']
+            if not isinstance(measures_raw, list):
                 return coverage_data
             
-            for measure in measures:
+            # Annotation explicite pour éviter l'erreur Pylance
+            measures: List[Dict[str, Any]] = measures_raw
+            
+            for measure in measures:  # type: ignore
                 if not isinstance(measure, dict):
                     continue
                     
-                metric_key = measure.get('metric', '')
-                value = measure.get('value', '0.0')
-                
-                percentage_value = float(value) if value.replace('.', '').isdigit() else 0.0
-                
-                if metric_key == 'coverage':
-                    coverage_data['couverture_generale'] = percentage_value
-                elif metric_key == 'new_coverage':
-                    coverage_data['couverture_generale_nouvelle'] = percentage_value
-                elif metric_key == 'line_coverage':
-                    coverage_data['couverture_ligne'] = percentage_value
-                elif metric_key == 'new_line_coverage':
-                    coverage_data['couverture_ligne_nouvelle'] = percentage_value
-                elif metric_key == 'branch_coverage':
-                    coverage_data['couverture_branche'] = percentage_value
-                elif metric_key == 'new_branch_coverage':
-                    coverage_data['couverture_branche_nouvelle'] = percentage_value
+                _process_coverage_measure(coverage_data, measure)
         
         return coverage_data
         
     except Exception as e:
         print(f"⚠️ Erreur couverture {project_key}: {e}")
         return coverage_data
+
+
+def _process_coverage_measure(coverage_data: Dict[str, Any], measure: Dict[str, Any]) -> None:
+    """Traite une métrique de couverture individuelle"""
+    metric_key = measure.get('metric', '')
+    value = measure.get('value', '0.0')
+    
+    percentage_value = float(value) if value.replace('.', '').isdigit() else 0.0
+    
+    if metric_key == 'coverage':
+        coverage_data['couverture_generale'] = percentage_value
+    elif metric_key == 'new_coverage':
+        coverage_data['couverture_generale_nouvelle'] = percentage_value
+    elif metric_key == 'line_coverage':
+        coverage_data['couverture_ligne'] = percentage_value
+    elif metric_key == 'new_line_coverage':
+        coverage_data['couverture_ligne_nouvelle'] = percentage_value
+    elif metric_key == 'branch_coverage':
+        coverage_data['couverture_branche'] = percentage_value
+    elif metric_key == 'new_branch_coverage':
+        coverage_data['couverture_branche_nouvelle'] = percentage_value

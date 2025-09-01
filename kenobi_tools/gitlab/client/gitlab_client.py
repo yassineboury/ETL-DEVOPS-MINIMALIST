@@ -116,9 +116,7 @@ class GitLabClient:
         )
 
     def _test_connection(self):
-        """
-        Teste la connexion GitLab
-        """
+        """Teste la connexion GitLab"""
         if not self.client:
             raise ConnectionError("Client GitLab non initialisé")
             
@@ -126,33 +124,9 @@ class GitLabClient:
             # Test basique d'authentification
             self.client.auth()
             
-            # Essayer d'obtenir les infos utilisateur
-            try:
-                current_user = self.client.user
-                if current_user and hasattr(current_user, 'name'):
-                    print(f"✅ Connecté en tant que: {current_user.name} ({current_user.username})")
-                else:
-                    # Fallback: essayer d'obtenir les infos via l'API
-                    if current_user and hasattr(current_user, 'id'):
-                        user_info = self.client.users.get(current_user.id, lazy=True)
-                        print(f"✅ Connexion établie - User ID: {user_info.id}")
-                    else:
-                        print("✅ Connexion GitLab établie (infos utilisateur limitées)")
-            except Exception:
-                # Si impossible d'obtenir les infos utilisateur, tester l'accès aux projets
-                print("✅ Connexion GitLab établie (infos utilisateur non disponibles)")
-            
-            # Test d'accès aux ressources
-            try:
-                projects = self.client.projects.list(owned=True, simple=True, per_page=1, get_all=False)
-                print(f"🔍 Accès vérifié - {len(projects)} projet(s) accessible(s)")
-            except Exception:
-                # Essayer un accès plus basique
-                try:
-                    version = self.client.version()
-                    print(f"🔍 Accès API vérifié - Version GitLab: {version}")
-                except Exception:
-                    print("🔍 Connexion basique établie")
+            # Tester infos utilisateur et ressources
+            self._test_user_info()
+            self._test_resource_access()
             
         except python_gitlab.GitlabAuthenticationError:
             raise python_gitlab.GitlabAuthenticationError("Token GitLab invalide ou expiré")
@@ -162,6 +136,53 @@ class GitLabClient:
             raise
         except Exception as e:
             raise ConnectionError(f"Erreur de test de connexion: {e}")
+
+    def _test_user_info(self):
+        """Teste l'accès aux informations utilisateur"""
+        if not self.client:
+            return
+            
+        try:
+            current_user = self.client.user
+            if current_user and hasattr(current_user, 'name'):
+                print(f"✅ Connecté en tant que: {current_user.name} ({current_user.username})")
+            else:
+                self._fallback_user_info(current_user)
+        except Exception:
+            print("✅ Connexion GitLab établie (infos utilisateur non disponibles)")
+
+    def _fallback_user_info(self, current_user):
+        """Fallback pour récupérer les infos utilisateur"""
+        if not self.client:
+            return
+            
+        if current_user and hasattr(current_user, 'id'):
+            user_info = self.client.users.get(current_user.id, lazy=True)
+            print(f"✅ Connexion établie - User ID: {user_info.id}")
+        else:
+            print("✅ Connexion GitLab établie (infos utilisateur limitées)")
+
+    def _test_resource_access(self):
+        """Teste l'accès aux ressources GitLab"""
+        if not self.client:
+            return
+            
+        try:
+            projects = self.client.projects.list(owned=True, simple=True, per_page=1, get_all=False)
+            print(f"🔍 Accès vérifié - {len(projects)} projet(s) accessible(s)")
+        except Exception:
+            self._fallback_resource_test()
+
+    def _fallback_resource_test(self):
+        """Test de ressources de base en cas d'échec"""
+        if not self.client:
+            return
+            
+        try:
+            version = self.client.version()
+            print(f"🔍 Accès API vérifié - Version GitLab: {version}")
+        except Exception:
+            print("🔍 Connexion basique établie")
 
     def get_client(self) -> python_gitlab.Gitlab:
         """
