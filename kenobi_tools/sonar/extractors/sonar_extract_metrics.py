@@ -253,7 +253,12 @@ def _extract_security_metrics(sonar_client: SonarQubeClient, project_key: str) -
                 continue
                 
             metric_key = measure.get('metric', '')
-            value = measure.get('value', '0')
+            
+            # Gérer les nouvelles métriques avec structure period
+            if metric_key.startswith('new_') and 'period' in measure:
+                value = measure['period'].get('value', '0')
+            else:
+                value = measure.get('value', '0')
             
             # Déléguer le traitement à des fonctions spécialisées
             _process_single_security_metric(security_data, metric_key, value)
@@ -283,20 +288,23 @@ def _process_single_security_metric(security_data: Dict[str, Any], metric_key: s
         security_data['hotspots_securite'] = int(value) if value.isdigit() else 0
         
     elif metric_key == 'security_hotspots_reviewed':
-        security_data['hotspots_revises_pct'] = float(value) if value.replace('.', '').isdigit() else 0.0
+        security_data['hotspots_revises_pct'] = float(value) if value.replace('.', '').replace(',', '').isdigit() else 0.0
 
 
 def _convert_rating_to_letter(rating_value: str) -> str:
     """Convertit les notes numériques SonarQube (1-5) en lettres (A-E)"""
     try:
+        # Convertir en float puis en int pour gérer les décimales (ex: "1.0" -> 1)
+        numeric_rating = int(float(rating_value))
+        
         rating_map = {
-            '1': 'A',
-            '2': 'B', 
-            '3': 'C',
-            '4': 'D',
-            '5': 'E'
+            1: 'A',
+            2: 'B', 
+            3: 'C',
+            4: 'D',
+            5: 'E'
         }
-        return rating_map.get(str(rating_value), NON_DEFINI)
+        return rating_map.get(numeric_rating, NON_DEFINI)
     except (ValueError, TypeError):
         return NON_DEFINI
 
