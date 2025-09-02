@@ -43,19 +43,19 @@ class SonarExcelExporter:
                 print(f"⚠️ Impossible de supprimer {Path(file).name}: {e}")
     
     def export_projects(self, df_metrics: pd.DataFrame, clean_first: bool = False) -> str:
-        """Exporte les métriques SonarQube complètes - VERSION SIMPLE"""
+        """Exporte les métriques SonarQube - VERSION SIMPLE (SANS TIMESTAMP)"""
         # Nettoyer les anciens exports seulement si demandé
         if clean_first:
             self.clean_old_exports()
         
-        # Nom fixe comme GitLab (sans timestamp)
+        # NOM FIXE sans timestamp pour structure current/previous/archive
         filename = self.export_dir / "sonar_metrics.xlsx"
         
         if df_metrics.empty:
             # Créer un fichier vide avec en-têtes pour Power BI
             empty_df = pd.DataFrame(columns=SONAR_METRICS_COLUMN_ORDER)
             empty_df.to_excel(filename, sheet_name=SONAR_SHEET_NAME, index=False)
-            print(f"⚠️ Aucune métrique trouvée - fichier vide créé → {filename}")
+            print(f"⚠️ Aucune métrique trouvée - fichier vide créé → {filename.name}")
             return str(filename)
         
         # Mapping des colonnes pour Power BI
@@ -77,7 +77,7 @@ class SonarExcelExporter:
         # Export basique - Power BI fait le reste
         df_export.to_excel(filename, sheet_name=SONAR_SHEET_NAME, index=False)
         
-        print(f"✅ {len(df_metrics)} métriques SonarQube → {filename}")
+        print(f"✅ {len(df_metrics)} métriques SonarQube → {filename.name}")
         return str(filename)
 
 

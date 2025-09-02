@@ -34,7 +34,7 @@ class MaestroKenobiOrchestrator:
 
     def __init__(self):
         self.project_root = Path(__file__).parent
-        self.exports_dir = self.project_root / "exports" / "gitlab"
+        self.exports_dir = self.project_root / "exports"  # ✅ CORRECT - répertoire racine exports/
         self.gitlab_client = None
         self.gl = None
         self.menu = MenuComponents()

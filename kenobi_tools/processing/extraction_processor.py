@@ -6,6 +6,8 @@ Complexité cognitive visée: ≤ 10
 from pathlib import Path
 from typing import Optional, Dict, Any
 import pandas as pd
+import shutil
+from datetime import datetime
 
 from ..gitlab.client.gitlab_client import GitLabClient
 from ..gitlab.extractors.gitlab_extract_users import extract_human_users
@@ -26,9 +28,99 @@ class ExtractionProcessor:
     def __init__(self):
         self.extracted_data = {}
         
+    def _archive_current_exports(self, exports_dir: Path) -> bool:
+        """
+        Archive les exports actuels selon la structure :
+        current/ → previous/ (avec suffix _prev) + archive/DDMMYYYY_HHMM/
+        
+        Args:
+            exports_dir: Répertoire racine exports/
+            
+        Returns:
+            True si succès, False sinon
+        """
+        try:
+            current_dir = exports_dir / "current"
+            previous_dir = exports_dir / "previous" 
+            archive_dir = exports_dir / "archive"
+            
+            # Si pas de current/, rien à archiver
+            if not current_dir.exists():
+                print("📁 Aucun export current/ à archiver")
+                return True
+            
+            # Générer timestamp français DDMMYYYY_HHMM
+            timestamp = datetime.now().strftime("%d%m%Y_%H%M")
+            archive_path = archive_dir / timestamp
+            
+            print(f"📦 Archivage des exports vers {timestamp}...")
+            
+            # ÉTAPE 1: Archiver current/ → archive/timestamp/
+            if any(current_dir.iterdir()):
+                archive_path.mkdir(parents=True, exist_ok=True)
+                shutil.copytree(current_dir, archive_path, dirs_exist_ok=True)
+                print(f"✅ Archive créée: {archive_path}")
+            
+            # ÉTAPE 2: current/ → previous/ (avec suffix _prev)
+            if previous_dir.exists():
+                shutil.rmtree(previous_dir)
+            
+            previous_dir.mkdir(parents=True, exist_ok=True)
+            
+            # Copier et renommer avec suffix _prev
+            for platform_dir in current_dir.iterdir():
+                if platform_dir.is_dir():
+                    platform_name = platform_dir.name  # gitlab ou sonar
+                    prev_platform_dir = previous_dir / platform_name
+                    prev_platform_dir.mkdir(exist_ok=True)
+                    
+                    # Copier chaque fichier avec suffix _prev
+                    for file_path in platform_dir.glob("*.xlsx"):
+                        old_name = file_path.stem  # nom sans extension
+                        new_name = f"{old_name}_prev.xlsx"
+                        dest_path = prev_platform_dir / new_name
+                        shutil.copy2(file_path, dest_path)
+                        print(f"📋 {file_path.name} → {new_name}")
+            
+            print("✅ Archivage terminé - Prêt pour nouveaux exports")
+            return True
+            
+        except Exception as e:
+            print(f"❌ Erreur archivage: {e}")
+            return False
+    
+    def _prepare_export_structure(self, exports_dir: Path) -> bool:
+        """
+        Prépare la structure d'export current/gitlab/ et current/sonar/
+        
+        Args:
+            exports_dir: Répertoire racine exports/
+            
+        Returns:
+            True si succès, False sinon
+        """
+        try:
+            current_dir = exports_dir / "current"
+            
+            # Nettoyer current/ pour nouveaux exports
+            if current_dir.exists():
+                shutil.rmtree(current_dir)
+            
+            # Recréer structure current/
+            (current_dir / "gitlab").mkdir(parents=True, exist_ok=True)
+            (current_dir / "sonar").mkdir(parents=True, exist_ok=True)
+            
+            print("📁 Structure current/ préparée")
+            return True
+            
+        except Exception as e:
+            print(f"❌ Erreur préparation structure: {e}")
+            return False
+        
     def process_all_data(self, exports_dir: Path, include_sonar: bool = False) -> bool:
         """
         Traite toutes les données GitLab + SonarQube optionnel
+        NOUVEAU: Avec archivage automatique current/previous/archive
         
         Args:
             exports_dir: Répertoire d'export
@@ -38,15 +130,29 @@ class ExtractionProcessor:
             True si succès, False sinon
         """
         print("🚀 Début extraction DevSecOps complète")
-        success = True
         
         try:
-            # PHASE 1: Extraction GitLab
-            success &= self._process_gitlab_data(exports_dir)
+            # PHASE 0: Archivage des exports précédents
+            if not self._archive_current_exports(exports_dir):
+                print("⚠️ Problème archivage - continuation sans archivage")
             
-            # PHASE 2: Extraction SonarQube (optionnelle)
+            # PHASE 1: Préparation structure current/
+            if not self._prepare_export_structure(exports_dir):
+                return False
+            
+            success = True
+            
+            # PHASE 2: Extraction GitLab → current/gitlab/
+            current_gitlab_dir = exports_dir / "current" / "gitlab"
+            success &= self._process_gitlab_data(current_gitlab_dir)
+            
+            # PHASE 3: Extraction SonarQube → current/sonar/ (optionnelle)
             if include_sonar and success:
-                success &= self._process_sonar_data(exports_dir)
+                current_sonar_dir = exports_dir / "current" / "sonar"
+                success &= self._process_sonar_data(current_sonar_dir)
+            
+            if success:
+                print("🎉 Extraction complète réussie avec archivage !")
             
             return success
             
@@ -98,7 +204,7 @@ class ExtractionProcessor:
             print(f"❌ Erreur extraction GitLab: {e}")
             return False
     
-    def _process_sonar_data(self, exports_dir: Path) -> bool:
+    def _process_sonar_data(self, sonar_exports_dir: Path) -> bool:
         """Traite les données SonarQube"""
         print("\n📈 === EXTRACTION SONARQUBE ===")
         
@@ -111,8 +217,7 @@ class ExtractionProcessor:
                 print("❌ Connexion SonarQube échouée")
                 return False
             
-            # Créer le répertoire SonarQube
-            sonar_exports_dir = exports_dir.parent / "sonar"
+            # Créer le répertoire SonarQube si nécessaire
             sonar_exports_dir.mkdir(parents=True, exist_ok=True)
             
             # Initialiser l'exporteur SonarQube
@@ -173,8 +278,9 @@ class ExtractionProcessor:
                 print("⚠️ Aucun événement extrait pour cette période")
                 return True  # Pas d'erreur, juste pas de données
             
-            # Initialiser l'exporteur
-            exports_dir = Path(__file__).parent.parent.parent / "exports" / "gitlab"
+            # Utiliser la nouvelle structure current/gitlab/
+            exports_dir = Path(__file__).parent.parent.parent / "exports" / "current" / "gitlab"
+            exports_dir.mkdir(parents=True, exist_ok=True)
             exporter = GitLabExcelExporter(exports_dir)
             
             # Export Excel avec mapping Power BI
