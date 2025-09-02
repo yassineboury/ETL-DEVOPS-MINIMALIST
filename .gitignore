@@ -71,3 +71,9 @@ debug_*.py
 analyze_*.py
 *_test.py
 *_debug.py
+# Exports
+exports/*.xlsx
+exports/**/*.xlsx
+exports/current/
+exports/previous/
+exports/archive/

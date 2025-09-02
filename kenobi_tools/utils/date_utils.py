@@ -14,18 +14,19 @@ class DateFormatter:
     """Formateur de dates simplifié"""
     
     @staticmethod
-    def format_gitlab_date(date_input: Union[str, datetime, pd.Timestamp, None]) -> str:
+    def format_gitlab_date(date_input: Union[str, datetime, pd.Timestamp, None]) -> Optional[str]:
         """
         Convertit une date GitLab en format français DD/MM/YYYY HH:MM:SS
+        POWER BI COMPATIBLE: Retourne None au lieu de "N/A" pour les dates vides
         
         Args:
             date_input: Date à formater
             
         Returns:
-            Date formatée ou "N/A" si invalide
+            Date formatée ou None si invalide/vide (Power BI ready)
         """
         if not date_input:
-            return "N/A"
+            return None  # ✅ Power BI : cellule vide au lieu de "N/A"
         
         try:
             # Si c'est déjà un datetime
@@ -51,7 +52,8 @@ class DateFormatter:
             return dt.strftime(DATE_FORMAT_FRENCH)
             
         except (ValueError, TypeError, AttributeError):
-            return str(date_input) if date_input else "N/A"
+            # ✅ Power BI : Retourner None pour les dates invalides
+            return None
     
     @staticmethod
     def format_date_columns(df: pd.DataFrame) -> pd.DataFrame:
@@ -84,12 +86,12 @@ class DateFormatter:
 
 
 # Fonctions de compatibilité avec l'ancienne API
-def format_gitlab_date(date_input: Union[str, datetime, pd.Timestamp, None]) -> str:
+def format_gitlab_date(date_input: Union[str, datetime, pd.Timestamp, None]) -> Optional[str]:
     """Fonction de compatibilité pour le formatage de dates GitLab"""
     return DateFormatter.format_gitlab_date(date_input)
 
 
-def format_date_for_powerbi(date_input: Union[str, datetime, pd.Timestamp, None]) -> str:
+def format_date_for_powerbi(date_input: Union[str, datetime, pd.Timestamp, None]) -> Optional[str]:
     """Fonction de compatibilité pour Power BI"""
     return DateFormatter.format_gitlab_date(date_input)
 
