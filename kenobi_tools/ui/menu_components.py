@@ -56,26 +56,39 @@ class MenuComponents:
         print("\n\n")
 
     @staticmethod
-    def show_main_menu() -> bool:
-        """Menu principal simplifié - extraction complète directe"""
-        print("           🚀 EXTRACTION GITLAB COMPLÈTE")
-        print("    " + "─" * 40)
+    def show_main_menu() -> Dict[str, bool]:
+        """Menu principal avec choix GitLab + SonarQube"""
+        print("           🚀 EXTRACTION DEVSECOPS COMPLÈTE")
+        print("    " + "─" * 45)
         print("\n")
 
-        print("    � DONNÉES EXTRAITES AUTOMATIQUEMENT:")
+        print("    📊 DONNÉES DISPONIBLES:")
         print("       ├─ 👥 Utilisateurs GitLab (~30s)")
         print("       ├─ 🏢 Groupes et sous-groupes (~20s)")
         print("       ├─ 📁 Projets actifs + archivés (~45s)")
-        print("       └─ � Événements avec période configurable")
+        print("       ├─ 📅 Événements avec période configurable")
+        print("       └─ 📈 Métriques SonarQube (15 champs Power BI)")
         print("\n")
         
-        print("    ⏱️  Durée estimée: 5-20 minutes")
-        print("    � Export: Fichiers Excel Power BI ready")
+        print("    ⏱️  Durée estimée: 5-25 minutes")
+        print("    📁 Export: Fichiers Excel Power BI ready")
         print("\n")
-        print("    " + "─" * 43)
+        print("    " + "─" * 50)
         print("")
 
-        return MenuComponents._get_yes_no_choice("🚀 Lancer l'extraction complète ? (o/n) ► ")
+        # Choix GitLab (toujours actif pour cette version)
+        gitlab_choice = True
+        
+        # Choix SonarQube (optionnel)
+        sonar_choice = MenuComponents._get_yes_no_choice("📈 Inclure les métriques SonarQube ? (o/n) ► ")
+        
+        # Affichage de la configuration finale
+        if sonar_choice:
+            print("    ✅ Configuration: GitLab + SonarQube")
+        else:
+            print("    ✅ Configuration: GitLab uniquement")
+        
+        return {"gitlab": gitlab_choice, "sonar": sonar_choice}
 
     @staticmethod
     def show_events_period_menu() -> Dict[str, Any] | None:

@@ -1,7 +1,7 @@
 """
-Extracteur de métriques SonarQube - VERSION OPTIMISÉE POWER BI
-Module pour extraire les métriques SonarQube essentielles (9 champs)
-Optimisé pour Power BI - Champs critiques uniquement
+Extracteur de métriques SonarQube - VERSION COMPLÈTE POWER BI
+Module pour extraire les métriques SonarQube complètes (15 champs optimaux)
+Optimisé pour Power BI - Métriques Business + Techniques essentielles
 """
 
 import pandas as pd
@@ -15,21 +15,21 @@ NON_DEFINI = 'Non défini'
 
 def extract_sonar_metrics(sonar_client: SonarQubeClient) -> pd.DataFrame:
     """
-    Extrait les métriques SonarQube essentielles (9 champs Power BI optimisés)
+    Extrait les métriques SonarQube complètes (15 champs Power BI optimaux)
     
     Args:
         sonar_client: Client SonarQube authentifié
     
     Returns:
-        DataFrame avec 9 métriques essentielles ou DataFrame vide si erreur
+        DataFrame avec 15 métriques Business+Techniques ou DataFrame vide si erreur
     """
     try:
-        print("📥 Extraction des métriques SonarQube essentielles...")
+        print("📥 Extraction des métriques SonarQube complètes...")
         
         # ═══════════════════════════════════════════════════════════
-        # 📊 EXTRACTION MÉTRIQUES ESSENTIELLES (9 champs)
+        # 📊 EXTRACTION MÉTRIQUES COMPLÈTES (15 champs)
         # ═══════════════════════════════════════════════════════════
-        metrics_data = _extract_essential_metrics_data(sonar_client)
+        metrics_data = _extract_complete_metrics_data(sonar_client)
         
         if not metrics_data:
             print("⚠️ Aucune métrique trouvée")
@@ -44,7 +44,7 @@ def extract_sonar_metrics(sonar_client: SonarQubeClient) -> pd.DataFrame:
         if not df.empty and 'date_derniere_analyse' in df.columns:
             df = _format_date_columns(df)
         
-        print(f"✅ {len(df)} projets avec métriques essentielles extraits")
+        print(f"✅ {len(df)} projets avec métriques complètes extraits")
         return df
         
     except Exception as e:
@@ -52,14 +52,16 @@ def extract_sonar_metrics(sonar_client: SonarQubeClient) -> pd.DataFrame:
         return pd.DataFrame()
 
 
-def _extract_essential_metrics_data(sonar_client: SonarQubeClient) -> List[Dict[str, Any]]:
+def _extract_complete_metrics_data(sonar_client: SonarQubeClient) -> List[Dict[str, Any]]:
     """
-    MÉTRIQUES ESSENTIELLES : 9 champs Power BI critiques uniquement
+    MÉTRIQUES COMPLÈTES : 15 champs Power BI optimaux (Business + Techniques)
     
-    Champs extraits (9 essentiels):
+    Champs extraits (15 optimaux):
     - PROJET: Clé, Nom, Date Analyse, Quality Gate (4)
     - SÉCURITÉ: Vulnérabilités Totales, Note Sécurité (2) 
     - MAINTENABILITÉ: Code Smells, Dette Technique, Note (3)
+    - BUSINESS: Duplication, Lignes Code, Couverture Tests (3)
+    - TECHNIQUES: Bugs, Note Fiabilité, Complexité (3)
     """
     metrics_data = []
     
@@ -101,10 +103,22 @@ def _extract_essential_metrics_data(sonar_client: SonarQubeClient) -> List[Dict[
             maintainability_metrics = _extract_essential_maintainability_metrics(sonar_client, project_key)
             project_metrics.update(maintainability_metrics)
             
+            # ═══════════════════════════════════════════════════════════
+            # 📊 MÉTRIQUES BUSINESS (3 champs)
+            # ═══════════════════════════════════════════════════════════
+            business_metrics = _extract_business_metrics(sonar_client, project_key)
+            project_metrics.update(business_metrics)
+            
+            # ═══════════════════════════════════════════════════════════
+            # 🔬 MÉTRIQUES TECHNIQUES (3 champs)
+            # ═══════════════════════════════════════════════════════════
+            technical_metrics = _extract_technical_metrics(sonar_client, project_key)
+            project_metrics.update(technical_metrics)
+            
             metrics_data.append(project_metrics)
             
     except Exception as e:
-        print(f"⚠️ Erreur extraction métriques essentielles: {e}")
+        print(f"⚠️ Erreur extraction métriques complètes: {e}")
     
     return metrics_data
 
@@ -188,7 +202,7 @@ def _format_date_columns(df: pd.DataFrame) -> pd.DataFrame:
 
 
 # ═══════════════════════════════════════════════════════════
-# 📋 MAPPING COLONNES POWER BI - MÉTRIQUES ESSENTIELLES (9 CHAMPS)
+# 📋 MAPPING COLONNES POWER BI - MÉTRIQUES COMPLÈTES (15 CHAMPS)
 # ═══════════════════════════════════════════════════════════
 SONAR_METRICS_COLUMN_MAPPING = {
     # DONNÉES PROJET (4 colonnes)
@@ -204,17 +218,31 @@ SONAR_METRICS_COLUMN_MAPPING = {
     # MÉTRIQUES MAINTENABILITÉ ESSENTIELLES (3 colonnes)
     'code_smells_totaux': 'Code Smells Totaux',
     'dette_technique': 'Dette Technique (min)',
-    'note_maintenabilite': 'Note Maintenabilité'
+    'note_maintenabilite': 'Note Maintenabilité',
+    
+    # MÉTRIQUES BUSINESS (3 colonnes)
+    'duplication_densite': 'Duplication Code (%)',
+    'lignes_code': 'Lignes Code',
+    'couverture_tests': 'Couverture Tests (%)',
+    
+    # MÉTRIQUES TECHNIQUES (3 colonnes)
+    'bugs_totaux': 'Bugs Totaux',
+    'note_fiabilite': 'Note Fiabilité',
+    'complexite_cyclomatique': 'Complexité Cyclomatique'
 }
 
-# Ordre des colonnes dans Excel (9 colonnes essentielles)
+# Ordre des colonnes dans Excel (15 colonnes complètes)
 SONAR_METRICS_COLUMN_ORDER = [
     # Projet (4)
     'Clé Projet', 'Nom Projet', 'Date Dernière Analyse', 'Qualité Gate',
     # Sécurité essentielle (2)
     'Vulnérabilités Totales', 'Note Sécurité',
     # Maintenabilité essentielle (3)
-    'Code Smells Totaux', 'Dette Technique (min)', 'Note Maintenabilité'
+    'Code Smells Totaux', 'Dette Technique (min)', 'Note Maintenabilité',
+    # Business (3)
+    'Duplication Code (%)', 'Lignes Code', 'Couverture Tests (%)',
+    # Techniques (3)
+    'Bugs Totaux', 'Note Fiabilité', 'Complexité Cyclomatique'
 ]
 
 
@@ -349,3 +377,116 @@ def _format_technical_debt(debt_minutes: str) -> int:
             
     except (ValueError, TypeError):
         return 0  # Retourner 0 au lieu de "Non défini" pour Power BI
+
+
+# ═══════════════════════════════════════════════════════════
+# 📊 MÉTRIQUES BUSINESS
+# ═══════════════════════════════════════════════════════════
+
+def _extract_business_metrics(sonar_client: SonarQubeClient, project_key: str) -> Dict[str, Any]:
+    """
+    MÉTRIQUES BUSINESS : 3 champs critiques pour management
+    
+    Métriques extraites:
+    - Duplication Code (%)
+    - Lignes de Code (nombre)
+    - Couverture Tests (%)
+    """
+    business_data = {
+        'duplication_densite': 0.0,  # %
+        'lignes_code': 0,            # Nombre
+        'couverture_tests': 0.0      # %
+    }
+    
+    try:
+        business_metrics = sonar_client.measures.get_component_with_specified_measures(
+            component=project_key,
+            metricKeys="duplicated_lines_density,ncloc,coverage"
+        )
+        
+        if business_metrics and business_metrics.get('component', {}).get('measures'):
+            raw_measures = business_metrics['component']['measures']
+            if isinstance(raw_measures, list):
+                _process_business_measures(raw_measures, business_data)
+        
+        return business_data
+        
+    except Exception as e:
+        print(f"⚠️ Erreur métriques business {project_key}: {e}")
+        return business_data
+
+
+def _process_business_measures(measures: List[Dict[str, Any]], business_data: Dict[str, Any]) -> None:
+    """Traite les métriques business - Fonction helper optimisée pour complexité cognitive"""
+    for measure in measures:
+        if not isinstance(measure, dict):
+            continue
+            
+        _process_single_business_measure(measure, business_data)
+
+
+def _process_single_business_measure(measure: Dict[str, Any], business_data: Dict[str, Any]) -> None:
+    """Traite une métrique business individuelle"""
+    metric_key = measure.get('metric', '')
+    value = measure.get('value', '0')
+    
+    if metric_key == 'duplicated_lines_density':
+        business_data['duplication_densite'] = float(value) if value.replace('.', '').isdigit() else 0.0
+    elif metric_key == 'ncloc':
+        business_data['lignes_code'] = int(value) if value.isdigit() else 0
+    elif metric_key == 'coverage':
+        business_data['couverture_tests'] = float(value) if value.replace('.', '').isdigit() else 0.0
+
+
+# ═══════════════════════════════════════════════════════════
+# 🔬 MÉTRIQUES TECHNIQUES
+# ═══════════════════════════════════════════════════════════
+
+def _extract_technical_metrics(sonar_client: SonarQubeClient, project_key: str) -> Dict[str, Any]:
+    """
+    MÉTRIQUES TECHNIQUES : 3 champs critiques pour développeurs
+    
+    Métriques extraites:
+    - Bugs Totaux (nombre)
+    - Note Fiabilité (A-E)
+    - Complexité Cyclomatique (nombre)
+    """
+    technical_data = {
+        'bugs_totaux': 0,                    # Nombre
+        'note_fiabilite': NON_DEFINI,        # A-E
+        'complexite_cyclomatique': 0         # Nombre
+    }
+    
+    try:
+        technical_metrics = sonar_client.measures.get_component_with_specified_measures(
+            component=project_key,
+            metricKeys="bugs,reliability_rating,complexity"
+        )
+        
+        if technical_metrics and technical_metrics.get('component', {}).get('measures'):
+            raw_measures = technical_metrics['component']['measures']
+            if isinstance(raw_measures, list):
+                _process_technical_measures(raw_measures, technical_data)
+        
+        return technical_data
+        
+    except Exception as e:
+        print(f"⚠️ Erreur métriques techniques {project_key}: {e}")
+        return technical_data
+
+
+def _process_technical_measures(measures: List[Dict[str, Any]], technical_data: Dict[str, Any]) -> None:
+    """Traite les métriques techniques - Fonction helper pour réduire la complexité cognitive"""
+    for measure in measures:
+        if not isinstance(measure, dict):
+            continue
+            
+        metric_key = measure.get('metric', '')
+        value = measure.get('value', '0')
+        
+        if metric_key == 'bugs':
+            technical_data['bugs_totaux'] = int(value) if value.isdigit() else 0
+        elif metric_key == 'reliability_rating':
+            technical_data['note_fiabilite'] = _convert_rating_to_letter(value)
+        elif metric_key == 'complexity':
+            technical_data['complexite_cyclomatique'] = int(value) if value.isdigit() else 0

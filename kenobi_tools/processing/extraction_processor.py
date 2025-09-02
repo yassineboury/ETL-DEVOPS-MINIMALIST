@@ -1,5 +1,5 @@
 """
-Processeur d'extraction GitLab - VERSION POWER BI
+Processeur d'extraction GitLab + SonarQube - VERSION POWER BI
 Orchestration simple sans statistiques ni complexité
 Complexité cognitive visée: ≤ 10
 """
@@ -14,63 +14,127 @@ from ..gitlab.extractors.gitlab_extract_active_projects import extract_active_pr
 from ..gitlab.extractors.gitlab_extract_archived_projects import extract_archived_projects
 from ..gitlab.exporters.gitlab_export_excel import GitLabExcelExporter
 
+# Imports SonarQube
+from ..sonar.client.sonar_client import SonarClient
+from ..sonar.extractors.sonar_extract_metrics import extract_sonar_metrics
+from ..sonar.exporters.sonar_excel_exporter import SonarExcelExporter
+
 
 class ExtractionProcessor:
-    """Processeur simple d'extraction GitLab"""
+    """Processeur simple d'extraction GitLab + SonarQube"""
 
     def __init__(self):
         self.extracted_data = {}
         
-    def process_all_data(self, exports_dir: Path) -> bool:
+    def process_all_data(self, exports_dir: Path, include_sonar: bool = False) -> bool:
         """
-        Traite toutes les données GitLab - VERSION CORRIGÉE
+        Traite toutes les données GitLab + SonarQube optionnel
         
         Args:
             exports_dir: Répertoire d'export
+            include_sonar: True pour inclure SonarQube, False pour GitLab seulement
             
         Returns:
             True si succès, False sinon
         """
-        print("🚀 Début extraction GitLab complète")
+        print("🚀 Début extraction DevSecOps complète")
+        success = True
+        
+        try:
+            # PHASE 1: Extraction GitLab
+            success &= self._process_gitlab_data(exports_dir)
+            
+            # PHASE 2: Extraction SonarQube (optionnelle)
+            if include_sonar and success:
+                success &= self._process_sonar_data(exports_dir)
+            
+            return success
+            
+        except Exception as e:
+            print(f"❌ Erreur extraction complète: {e}")
+            return False
+    
+    def _process_gitlab_data(self, exports_dir: Path) -> bool:
+        """Traite les données GitLab"""
+        print("\n📊 === EXTRACTION GITLAB ===")
         
         try:
             # Connexion GitLab
             client = GitLabClient()
             gl = client.connect()
             
-            # Initialiser l'exporteur
-            exporter = GitLabExcelExporter(exports_dir)
+            # Initialiser l'exporteur GitLab
+            gitlab_exporter = GitLabExcelExporter(exports_dir)
             
-            # ÉTAPE 1: Nettoyage initial de TOUS les anciens fichiers
-            print("🗑️ Nettoyage des anciens exports...")
-            exporter.clean_old_exports()
+            # ÉTAPE 1: Nettoyage initial de TOUS les anciens fichiers GitLab
+            print("🗑️ Nettoyage des anciens exports GitLab...")
+            gitlab_exporter.clean_old_exports()
             
-            # ÉTAPE 2: Extractions directes (sans nettoyage supplémentaire)
+            # ÉTAPE 2: Extractions GitLab directes
             print("📋 Extraction utilisateurs...")
             users_df = extract_human_users(gl)
             if not users_df.empty:
-                exporter.export_users(users_df, clean_first=False)
+                gitlab_exporter.export_users(users_df, clean_first=False)
             
             print("👥 Extraction groupes...")
             groups_df = extract_groups(gl)
             if not groups_df.empty:
-                exporter.export_groups(groups_df, clean_first=False)
+                gitlab_exporter.export_groups(groups_df, clean_first=False)
             
             print("📁 Extraction projets actifs...")
             active_projects_df = extract_active_projects(gl)
             if not active_projects_df.empty:
-                exporter.export_projects(active_projects_df, "active_projects", clean_first=False)
+                gitlab_exporter.export_projects(active_projects_df, "active_projects", clean_first=False)
             
             print("📦 Extraction projets archivés...")  
             archived_projects_df = extract_archived_projects(gl)
             if not archived_projects_df.empty:
-                exporter.export_projects(archived_projects_df, "archived_projects", clean_first=False)
+                gitlab_exporter.export_projects(archived_projects_df, "archived_projects", clean_first=False)
             
-            print("✅ Extraction complète terminée")
+            print("✅ Extraction GitLab terminée")
             return True
             
         except Exception as e:
-            print(f"❌ Erreur extraction: {e}")
+            print(f"❌ Erreur extraction GitLab: {e}")
+            return False
+    
+    def _process_sonar_data(self, exports_dir: Path) -> bool:
+        """Traite les données SonarQube"""
+        print("\n📈 === EXTRACTION SONARQUBE ===")
+        
+        try:
+            # Connexion SonarQube
+            sonar_client_wrapper = SonarClient()
+            sonar_client = sonar_client_wrapper.connect()
+            
+            if not sonar_client:
+                print("❌ Connexion SonarQube échouée")
+                return False
+            
+            # Créer le répertoire SonarQube
+            sonar_exports_dir = exports_dir.parent / "sonar"
+            sonar_exports_dir.mkdir(parents=True, exist_ok=True)
+            
+            # Initialiser l'exporteur SonarQube
+            sonar_exporter = SonarExcelExporter(sonar_exports_dir)
+            
+            print("📈 Extraction métriques SonarQube (15 champs)...")
+            metrics_df = extract_sonar_metrics(sonar_client)
+            
+            if not metrics_df.empty:
+                filename = sonar_exporter.export_projects(metrics_df)
+                if filename:
+                    print(f"✅ Métriques SonarQube exportées: {filename}")
+                    return True
+                else:
+                    print("❌ Échec export SonarQube")
+                    return False
+            else:
+                print("⚠️ Aucune métrique SonarQube extraite")
+                return True  # Pas d'erreur, juste pas de données
+            
+        except Exception as e:
+            print(f"❌ Erreur extraction SonarQube: {e}")
             return False
 
     def process_events_extraction(self, events_config: Optional[Dict[str, Any]] = None) -> bool:

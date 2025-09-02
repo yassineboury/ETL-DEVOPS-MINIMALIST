@@ -41,46 +41,60 @@ class MaestroKenobiOrchestrator:
         self.processor = ExtractionProcessor()
 
     def run_intelligent_extraction(self) -> bool:
-        """Point d'entrée principal avec interface simplifiée"""
+        """Point d'entrée principal avec interface GitLab + SonarQube"""
         self.menu.show_welcome_banner()
 
-        # Menu principal simplifié - retourne bool directement
-        proceed = self.menu.show_main_menu()
+        # Menu principal avec choix GitLab/SonarQube
+        extraction_choices = self.menu.show_main_menu()
 
-        if proceed:
-            return self._execute_full_extraction()
-        else:
+        if not extraction_choices["gitlab"] and not extraction_choices["sonar"]:
             print("    ❌ Extraction annulée")
             return False
-
-    def _execute_full_extraction(self) -> bool:
-        """Exécute l'extraction complète avec choix de période pour les événements"""
-        # Étape 1: Configuration des événements
-        print("\n    📋 Configuration des événements")
-        events_config = self.menu.show_events_period_menu()
-
-        # Étape 2: Validation et lancement direct
-        if not events_config:
-            print("    ❌ Configuration des événements échouée")
-            return False
-
-        print(f"\n    ✅ Configuration terminée: {events_config['name']}")
         
-        # Étape 3: Exécution directe
-        if not self._setup_gitlab_connection():
-            return False
+        return self._execute_full_extraction(extraction_choices)
 
+    def _execute_full_extraction(self, extraction_choices: Dict[str, bool]) -> bool:
+        """Exécute l'extraction complète GitLab + SonarQube selon les choix"""
+        
         success = True
         
-        # Phase 1: Données de base
-        print("\n🚀 Début de l'extraction complète...")
-        success = self.processor.process_all_data(self.exports_dir)
+        # Phase 1: GitLab (si sélectionné)
+        if extraction_choices["gitlab"]:
+            # Étape 1: Configuration des événements GitLab
+            print("\n    📋 Configuration des événements GitLab")
+            events_config = self.menu.show_events_period_menu()
 
-        # Phase 2: Événements 
-        if events_config and success:
-            success &= self.processor.process_events_extraction(events_config)
+            # Étape 2: Validation et connexion GitLab
+            if not events_config:
+                print("    ❌ Configuration des événements GitLab échouée")
+                return False
 
-        return self._finalize_extraction(success)
+            print(f"\n    ✅ Configuration GitLab terminée: {events_config['name']}")
+            
+            if not self._setup_gitlab_connection():
+                return False
+
+            print("\n🚀 Début de l'extraction GitLab...")
+            success = self.processor.process_all_data(
+                self.exports_dir, 
+                include_sonar=extraction_choices["sonar"]
+            )
+
+            # Phase 2: Événements GitLab
+            if events_config and success:
+                success &= self.processor.process_events_extraction(events_config)
+        
+        # Phase 3: SonarQube uniquement (si GitLab non sélectionné)
+        elif extraction_choices["sonar"]:
+            print("\n🚀 Début de l'extraction SonarQube uniquement...")
+            # Créer un exports_dir pour SonarQube
+            sonar_exports_dir = self.project_root / "exports"
+            success = self.processor.process_all_data(
+                sonar_exports_dir, 
+                include_sonar=True
+            )
+
+        return self._finalize_extraction(success, extraction_choices)
 
     def _setup_gitlab_connection(self) -> bool:
         """Configure la connexion GitLab"""
@@ -100,14 +114,20 @@ class MaestroKenobiOrchestrator:
             print(f"❌ Erreur de connexion GitLab: {e}")
             return False
 
-    def _finalize_extraction(self, success: bool) -> bool:
-        """Finalise l'extraction et affiche le résumé"""
+    def _finalize_extraction(self, success: bool, extraction_choices: Dict[str, bool]) -> bool:
+        """Finalise l'extraction et affiche le résumé avec les choix effectués"""
         if success:
-            print("\n" + "=" * 60)
+            print("\n" + "=" * 65)
             print("🎭 MAESTRO KENOBI - EXTRACTION TERMINÉE AVEC SUCCÈS !")
-            print("=" * 60)
-            print("\n✅ Toutes les données ont été extraites et exportées")
-            print(f"📁 Fichiers disponibles dans: {self.exports_dir}")
+            print("=" * 65)
+            print("\n✅ Extractions réalisées:")
+            
+            if extraction_choices["gitlab"]:
+                print(f"   ├─ 📊 GitLab: {self.exports_dir}")
+            if extraction_choices["sonar"]:
+                sonar_dir = self.project_root / "exports" / "sonar"
+                print(f"   └─ 📈 SonarQube: {sonar_dir}")
+            
             print("\n🎯 Prêt pour import dans Power BI !")
             return True
         else:
