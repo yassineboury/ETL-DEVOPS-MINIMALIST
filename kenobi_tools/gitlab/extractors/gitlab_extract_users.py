@@ -78,7 +78,7 @@ def _process_single_user(user, include_blocked: bool) -> Optional[Dict[str, Any]
             return None
 
         # Extraire les informations utilisateur essentielles
-        return {
+        user_data = {
             'id_utilisateur': getattr(user, 'id', 0),
             'nom_utilisateur': getattr(user, 'username', 'N/A'),
             'email': getattr(user, 'email', 'N/A'),
@@ -89,6 +89,8 @@ def _process_single_user(user, include_blocked: bool) -> Optional[Dict[str, Any]
             'derniere_connexion': format_gitlab_date(getattr(user, 'last_sign_in_at', None)),
             'date_creation': format_gitlab_date(getattr(user, 'created_at', None))
         }
+        
+        return user_data
 
     except Exception as e:
         print(f"⚠️  Erreur traitement utilisateur {getattr(user, 'username', 'inconnu')}: {e}")
