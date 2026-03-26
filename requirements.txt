@@ -1,7 +1,7 @@
 # APIs
 python-gitlab==6.2.0
 python-sonarqube-api==2.0.5
-requests==2.32.4
+requests==2.33.0
 
 # Manipulation des données
 pandas==2.3.1
